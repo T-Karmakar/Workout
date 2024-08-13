@@ -6,6 +6,7 @@ class WriteDataFrameToFile {
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
 import java.io.{BufferedWriter, FileWriter}
+import org.apache.spark.sql._
 
 object WriteDataFrameToFile {
   def main(args: Array[String]): Unit = {
@@ -18,7 +19,7 @@ object WriteDataFrameToFile {
     // Create a DataFrame with 4 million rows of dummy data
     val data = (1 to 4000000).map(i => s"String_$i")
     val df: DataFrame = spark.createDataFrame(data.map(Tuple1(_))).toDF("stringColumn")
-
+    df.printSchema()
     // Specify the output file path
     val outputPath = "file.csv"
 
@@ -30,7 +31,7 @@ object WriteDataFrameToFile {
     val batchSize = 100000
 
     // Write DataFrame to file in batches
-    df.foreachPartition { partition =>
+    df.foreachPartition { partition: Iterator[Row] =>
       partition.grouped(batchSize).foreach { batch =>
         val stringData = batch.map(_.getString(0)).mkString("\n")
         bufferedWriter.write(stringData + "\n")
