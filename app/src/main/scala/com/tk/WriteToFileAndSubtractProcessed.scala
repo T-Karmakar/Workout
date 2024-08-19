@@ -1,5 +1,7 @@
 package com.tk
 
+import org.apache.spark.sql.DataFrame
+
 object WriteToFileAndSubtractProcessed extends App {
   import org.apache.spark.sql.{SparkSession, Dataset, Row}
   import org.apache.spark.sql.functions.col
@@ -14,7 +16,8 @@ object WriteToFileAndSubtractProcessed extends App {
   import spark.implicits._
 
   // 2. Assume you have a DataFrame with 4 million records and a single string column
-  var data: Dataset[Row] = (1 to 4000000).map(i => s"String $i").toDF("column1").as[Row]
+  //var data: Dataset[Row] = (1 to 4000000).map(i => s"String $i").toDF("column1").as[Row]
+  var data: DataFrame = (1 to 4000000).map(i => s"String $i").toDF("column1")
 
   // 3. Define the file path where the data will be written
   val filePath = "output_file.txt"

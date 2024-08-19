@@ -1,5 +1,8 @@
 package com.tk
 
+//import com.tk.WriteToFileDataSetRow.data.exprEnc
+import org.apache.spark.sql.DataFrame
+
 object WriteToFileDataSetRow extends App {
   import org.apache.spark.sql.{SparkSession, Dataset, Row}
   import java.io.{BufferedWriter, FileWriter}
@@ -13,7 +16,8 @@ object WriteToFileDataSetRow extends App {
   import spark.implicits._
 
   // 2. Assume you have a DataFrame with 4 million records and a single string column
-  val data: Dataset[Row] = (1 to 4000000).map(i => s"String $i").toDF("column1").as[Row]
+  //val data: Dataset[Row] = (1 to 4000000).map(i => s"String $i").toDF("column1").as[Row]
+  var data: DataFrame = (1 to 4000000).map(i => s"String $i").toDF("column1")
 
   // 3. Define the file path where the data will be written
   val filePath = "output_file.txt"

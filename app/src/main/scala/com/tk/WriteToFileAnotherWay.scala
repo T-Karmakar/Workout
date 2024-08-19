@@ -1,7 +1,7 @@
 package com.tk
 
 object WriteToFileAnotherWay extends App {
-  import org.apache.spark.sql.{SparkSession, DataFrame}
+  import org.apache.spark.sql.{SparkSession, DataFrame, Row}
   import java.io.{BufferedWriter, FileWriter}
 
   // 1. Create a SparkSession
