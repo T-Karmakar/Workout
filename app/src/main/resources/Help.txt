@@ -218,3 +218,135 @@ object BatchProcessRDD extends App {
   // 8. Stop the Spark session
   spark.stop()
 }
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.DataFrame
+import java.io.{BufferedWriter, FileWriter}
+
+val spark = SparkSession.builder()
+  .appName("Batch Processing Example")
+  .config("spark.executor.memory", "20g")
+  .config("spark.driver.memory", "20g")
+  .config("spark.memory.fraction", "0.6")
+  .config("spark.memory.storageFraction", "0.3")
+  .getOrCreate()
+
+spark.conf.set("spark.sql.shuffle.partitions", "400")
+
+// Example DataFrame creation (replace with actual data loading code)
+import spark.implicits._
+val df = spark.range(0, 4000000).map(_.toString).toDF("column_name")
+
+
+val batchSize = 100000
+val outputFilePath = "/path/to/output/file.txt"
+
+df.foreachPartition { partition =>
+  // Use a BufferedWriter to write data to file
+  val writer = new BufferedWriter(new FileWriter(outputFilePath, true))
+
+  try {
+    // Process each batch
+    partition.grouped(batchSize).foreach { batch =>
+      val stringData = batch.map(_.getString(0)).mkString("\n")
+      writer.write(stringData + "\n")
+    }
+  } finally {
+    writer.close()
+  }
+}
+
+
+spark.conf.set("spark.memory.fraction", "0.6")
+spark.conf.set("spark.memory.storageFraction", "0.3")
+
+
+--conf "spark.executor.extraJavaOptions=-XX:+UseG1GC -XX:+UseStringDeduplication"
+--conf "spark.driver.extraJavaOptions=-XX:+UseG1GC -XX:+UseStringDeduplication"
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+To write a single-column `DataFrame` with 4 million records to a flat file in a batchwise manner while avoiding heap space errors, we can use the following approach:
+
+### Key Considerations
+
+1. **Batch Processing**: Process and write the data in manageable batches to avoid excessive memory usage.
+2. **Efficient Memory Management**: Use Spark's built-in functionality to handle large datasets without overwhelming the available memory.
+3. **Resource Configuration**: Ensure that Spark's memory settings are configured appropriately to avoid `OutOfMemoryError`.
+
+### Steps to Implement the Solution
+
+#### 1. **Spark Configuration**
+   - **Executor Memory**: Set a reasonable amount of memory for the executor, considering that you have 24 GB of RAM.
+   - **Disk Spill**: Configure Spark to spill to disk when memory is insufficient.
+
+Here's how you might configure these settings:
+
+```scala
+import org.apache.spark.sql.{SparkSession, DataFrame}
+import java.io.{BufferedWriter, FileWriter}
+
+val spark = SparkSession.builder()
+  .appName("Batch Write Single Column DataFrame")
+  .config("spark.executor.memory", "8g")
+  .config("spark.driver.memory", "4g")
+  .config("spark.memory.fraction", "0.6")
+  .config("spark.memory.storageFraction", "0.3")
+  .config("spark.sql.files.maxPartitionBytes", "16MB")
+  .config("spark.sql.autoBroadcastJoinThreshold", "-1")
+  .getOrCreate()
+```
+
+#### 2. **Create or Load Your DataFrame**
+   - Assume you have a `DataFrame` with a single column of type `String`.
+
+```scala
+import org.apache.spark.sql.functions._
+import org.apache.spark.sql.DataFrame
+
+// Example DataFrame with 4 million rows
+val df: DataFrame = spark.range(1, 4000001)
+  .select(col("id").cast("string").alias("yourColumnName"))
+```
+
+#### 3. **Write DataFrame in Batches to a Flat File**
+   - Use the `foreachPartition` method to write the data in smaller batches.
+
+```scala
+val outputFilePath = "path/to/output/file.txt"
+val batchSize = 100000
+
+df.foreachPartition { partition =>
+  val fileWriter = new BufferedWriter(new FileWriter(outputFilePath, true))
+  try {
+    partition.grouped(batchSize).foreach { batch =>
+      val stringData = batch.map(_.getString(0)).mkString("\n")
+      fileWriter.write(stringData + "\n")
+      fileWriter.flush()
+    }
+  } finally {
+    fileWriter.close()
+  }
+}
+```
+
+#### 4. **Adjust Spark Memory and Disk Configuration**
+   - Ensure that you have set up Spark to spill intermediate data to disk if necessary, to avoid heap space issues.
+
+```scala
+spark.conf.set("spark.sql.shuffle.partitions", "400")
+spark.conf.set("spark.storage.memoryFraction", "0.3")
+spark.conf.set("spark.memory.offHeap.enabled", "true")
+spark.conf.set("spark.memory.offHeap.size", "4g")
+```
+
+### Summary of the Approach
+
+1. **Batch Size**: The `batchSize` is set to 100,000 records to keep memory usage within limits. Adjust this size according to your environment's performance.
+2. **BufferedWriter**: The `BufferedWriter` is used to write data incrementally to the file, which is efficient for large datasets.
+3. **foreachPartition**: This Spark method allows for processing data in partitions, which can be more memory-efficient than processing the entire DataFrame at once.
+
+By implementing the above approach, you should be able to write the large `DataFrame` to a flat file without running into heap space issues, even with the constraints of your environment.
