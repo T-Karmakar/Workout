@@ -1,6 +1,6 @@
 To update or merge a selected file from a feature branch into the master branch using GitLab, you can follow these steps:
 
-### Step 1: Checkout the Master Branch
+### Step 1: Checkout the Master Branch : Testing my comment
 First, switch to the master branch in your local repository.
 
 ```bash
