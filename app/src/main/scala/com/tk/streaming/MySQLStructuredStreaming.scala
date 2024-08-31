@@ -1,4 +1,4 @@
-package com.tk
+package com.tk.streaming
 
 class MySQLStructuredStreaming {
 
@@ -7,6 +7,7 @@ class MySQLStructuredStreaming {
 
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.streaming.Trigger
+
 import java.sql.Timestamp
 
 object MySQLStructuredStreaming {
