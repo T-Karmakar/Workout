@@ -25,7 +25,9 @@ object StreamDataFrameToShell {
     df.rdd.foreachPartition { partition =>
       partition.grouped(batchSize).foreach { batch =>
         // Convert each batch to a string (CSV format)
-        val batchData = batch.map(row => row.mkString(",")).mkString("\n")
+        //val batchData = batch.map(row => row.mkString(",")).mkString("\n")
+        //val batchData = batch.map(row => row).mkString("\n")
+        val batchData = batch.map(_.getString(0)).mkString("\n")
 
         // Pass the data to the shell script
         val process = Seq("/bin/bash", "-c", "path/to/your/script.sh")
