@@ -1,14 +1,12 @@
 package com.tk.streaming
 
+import org.apache.spark.sql.{DataFrame, Dataset, Row, SparkSession}
+import org.apache.spark.sql.streaming.Trigger
+import java.sql.Timestamp
+
 class MySQLStructuredStreaming {
 
 }
-
-
-import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.streaming.Trigger
-
-import java.sql.Timestamp
 
 object MySQLStructuredStreaming {
   def main(args: Array[String]): Unit = {
@@ -44,7 +42,7 @@ object MySQLStructuredStreaming {
 
     // Writing the processed data to MySQL
     val query = processedDF.writeStream
-      .foreachBatch { (batchDF, batchId) =>
+      .foreachBatch { (batchDF: Dataset[(Int, String, Int, java.sql.Timestamp)], batchId: Long) =>
         batchDF.write
           .mode("append")
           .jdbc(jdbcUrl, "output_table", connectionProperties)

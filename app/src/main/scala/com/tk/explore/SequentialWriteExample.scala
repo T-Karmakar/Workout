@@ -32,7 +32,7 @@ object SequentialWriteExample {
 
   def writeDataFrameInBatches(df: DataFrame, batchSize: Int, outputPath: String): Unit = {
     df.repartition(math.ceil(df.count().toDouble / batchSize).toInt) // Repartition to match batch size
-      .foreachPartition { partition =>
+      .foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
         // Using a single BufferedWriter for each partition
         val writer = new BufferedWriter(new FileWriter(outputPath, true))
 

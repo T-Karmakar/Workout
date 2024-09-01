@@ -71,8 +71,10 @@ object SparkStructuredStreamingExample {
       .load()
 
     val query2 = streamingMySQLDF.writeStream
+      .format("csv")
       .option("header", "true")
-      .csv("output/streaming_mysql_to_csv")
+      //.csv("output/streaming_mysql_to_csv")
+      .option("path", "output/streaming_mysql_to_csv")
       .outputMode("append")
       .trigger(Trigger.ProcessingTime("10 seconds"))
       .start()
