@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# Get the file path from the first argument
+#file_path=$1
+
 # Output file path
 OUTPUT_FILE="/desired/location/dataframe_output.txt"
 

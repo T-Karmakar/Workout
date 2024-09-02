@@ -29,6 +29,9 @@ object StreamDataFrameToShell {
         //val batchData = batch.map(row => row).mkString("\n")
         val batchData = batch.map(_.getString(0)).mkString("\n")
 
+        //import sys.process._
+        //val process = Seq("/bin/bash", "path/to/your/script.sh", filePath)
+
         // Pass the data to the shell script
         val process = Seq("/bin/bash", "-c", "path/to/your/script.sh")
         val output = process #< new java.io.ByteArrayInputStream(batchData.getBytes)
