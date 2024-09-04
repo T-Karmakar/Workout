@@ -29,7 +29,7 @@ object WriteDataFrameWithSed {
 
   def writeDataFrameWithSed(df: DataFrame, filePath: String): Unit = {
     // Convert DataFrame rows to a single string with newline separation
-    df.foreachPartition { partition =>
+    df.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
       val data = partition.map(row => row.mkString(",")).mkString("\n")
 
       // Define the sed command to write to the file

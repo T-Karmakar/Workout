@@ -27,8 +27,8 @@ object WriteDataFrameWithAwk {
     spark.stop()
   }
 
-  def writeDataFrameWithAwk(df: DataFrame, filePath: String): Unit = {
-    df.foreachPartition { partition =>
+  private def writeDataFrameWithAwk(df: DataFrame, filePath: String): Unit = {
+    df.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
       val data = partition.map(row => row.mkString(",")).mkString("\n")
 
       // Define the awk command to write to the file
