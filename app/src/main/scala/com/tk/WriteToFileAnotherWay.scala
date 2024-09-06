@@ -20,7 +20,7 @@ object WriteToFileAnotherWay extends App {
   val filePath = "output_file.txt"
 
   // 4. Write data in batches of 100,000 records using BufferedWriter
-  val batchSize = 100000
+  val batchSize = 1000000
 
   // Open the file in append mode
   val writer = new BufferedWriter(new FileWriter(filePath, true))
