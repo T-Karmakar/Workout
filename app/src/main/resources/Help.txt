@@ -350,3 +350,39 @@ spark.conf.set("spark.memory.offHeap.size", "4g")
 3. **foreachPartition**: This Spark method allows for processing data in partitions, which can be more memory-efficient than processing the entire DataFrame at once.
 
 By implementing the above approach, you should be able to write the large `DataFrame` to a flat file without running into heap space issues, even with the constraints of your environment.
+
+
+==============================================================================================================
+
+git init
+git add index.html
+git commit -m "Initial commit"
+git branch feature/agile-v1
+git checkout feature/agile-v1
+vi index.html
+git add index.html
+git commit
+git tag -a v1 -m "Version 1"
+git rebase master
+git checkout master
+git branch feature/agile-v2
+git checkout feature/agile-v2
+vi index.html
+git add index.html
+git commit
+git tag -a v2 -m "Version 2"
+git branch
+git checkout feature/agile-v2
+git branch feature/agile-v3
+git checkout feature/agile-v3
+vi index.html
+git add index.html
+git commit -m "Working software - list"
+vi index.html
+git add index.html
+git commit -m "Continuous improvement - list"
+git log
+git checkout feature/agile-v2
+git cherry-pick <<commit hash for Working software - list>>
+git checkout master
+git merge feature/agile-v2
