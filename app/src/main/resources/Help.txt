@@ -361,7 +361,7 @@ git branch feature/agile-v1
 git checkout feature/agile-v1
 vi index.html
 git add index.html
-git commit
+git commit --allow-empty -m ""
 git tag -a v1 -m "Version 1"
 git rebase master
 git checkout master
@@ -369,7 +369,7 @@ git branch feature/agile-v2
 git checkout feature/agile-v2
 vi index.html
 git add index.html
-git commit
+git commit --allow-empty -m ""
 git tag -a v2 -m "Version 2"
 git branch
 git checkout feature/agile-v2
