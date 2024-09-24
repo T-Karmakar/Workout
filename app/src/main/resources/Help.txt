@@ -361,7 +361,8 @@ git branch feature/agile-v1
 git checkout feature/agile-v1
 vi index.html
 git add index.html
-git commit --allow-empty -m ""
+git commit -m "Second commit"
+git commit --allow-empty-message -m ""
 git tag -a v1 -m "Version 1"
 git rebase master
 git checkout master
@@ -369,7 +370,8 @@ git branch feature/agile-v2
 git checkout feature/agile-v2
 vi index.html
 git add index.html
-git commit --allow-empty -m ""
+git commit -m "Third commit"
+git commit --allow-empty-message -m ""
 git tag -a v2 -m "Version 2"
 git branch
 git checkout feature/agile-v2
@@ -386,3 +388,71 @@ git checkout feature/agile-v2
 git cherry-pick <<commit hash for Working software - list>>
 git checkout master
 git merge feature/agile-v2
+
+
+=============================================================================================
+
+def process_list(arr):
+    # Keep running until the list is empty
+    while len(arr) > 0:
+        # Find the index of the smallest element
+        smallest_idx = 0
+        for i in range(1, len(arr)):
+            if arr[i] < arr[smallest_idx]:
+                smallest_idx = i
+
+        # Print current status
+        print(f"Smallest element: {arr[smallest_idx]} at index {smallest_idx}")
+        print(f"List before removal: {arr}")
+
+        # Create a new list excluding the smallest element and its neighbors (-1 and +1)
+        new_list = []
+        for i in range(len(arr)):
+            # Keep elements that are not the smallest and not its neighbors
+            if i < smallest_idx - 1 or i > smallest_idx + 1:
+                new_list.append(arr[i])
+
+        # Update the list
+        arr = new_list
+        print(f"List after removal: {arr}")
+        print('-' * 30)
+
+# Example usage:
+arr = [7, 3, 1, 4, 9, 2, 6, 5]
+process_list(arr)
+
+=============================================================================================
+
+def find_smallest_index(arr):
+    # Find the index of the smallest element in the list
+    smallest_idx = 0
+    for i in range(1, len(arr)):
+        if arr[i] < arr[smallest_idx]:
+            smallest_idx = i
+    return smallest_idx
+
+def process_list(arr):
+    # Keep running until the list is empty
+    while len(arr) > 0:
+        # Find the index of the smallest element
+        smallest_idx = find_smallest_index(arr)
+
+        # Print current status
+        print(f"Smallest element: {arr[smallest_idx]} at index {smallest_idx}")
+        print(f"List before removal: {arr}")
+
+        # Create a new list excluding the smallest element and its neighbors (-1 and +1)
+        new_list = []
+        for i in range(len(arr)):
+            # Keep elements that are not the smallest and not its neighbors
+            if i < smallest_idx - 1 or i > smallest_idx + 1:
+                new_list.append(arr[i])
+
+        # Update the list
+        arr = new_list
+        print(f"List after removal: {arr}")
+        print('-' * 30)
+
+# Example usage:
+arr = [7, 3, 1, 4, 9, 2, 6, 5]
+process_list(arr)
