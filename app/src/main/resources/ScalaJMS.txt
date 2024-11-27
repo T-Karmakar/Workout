@@ -1,0 +1,128 @@
+Project Structure:
+------------------
+/src/main/scala
+  - Producer.scala
+  - Consumer.scala
+  - Person.scala
+/build.gradle
+
+
+build.gradle file:
+------------------
+plugins {
+    id 'scala'
+    id 'application'
+}
+
+repositories {
+    mavenCentral()
+}
+
+dependencies {
+    implementation 'org.scala-lang:scala-library:2.13.12'
+    implementation 'org.apache.activemq:activemq-client:5.18.1'
+    implementation 'javax.jms:jms:1.1'
+}
+
+application {
+    mainClass = 'Producer' // Update with your actual main class
+}
+
+tasks.withType(ScalaCompile) {
+    scalaCompileOptions.additionalParameters = ['-deprecation', '-feature']
+}
+
+Person.scala
+-------------
+import java.io.Serializable
+
+@SerialVersionUID(1L)
+case class Person(name: String, age: Int) extends Serializable
+
+Producer.scala
+---------------
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms._
+import java.io.{ByteArrayOutputStream, ObjectOutputStream}
+
+object Producer {
+  def main(args: Array[String]): Unit = {
+    val brokerUrl = "tcp://localhost:61616" // Update if needed
+    val queueName = "testQueue"
+
+    val connectionFactory = new ActiveMQConnectionFactory(brokerUrl)
+    val connection = connectionFactory.createConnection()
+    connection.start()
+
+    val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+    val queue = session.createQueue(queueName)
+    val producer = session.createProducer(queue)
+    producer.setDeliveryMode(DeliveryMode.PERSISTENT)
+
+    // Create a Person object to send
+    val person = Person("Alice", 30)
+
+    // Serialize the object to a byte array
+    val byteArrayOutputStream = new ByteArrayOutputStream()
+    val objectOutputStream = new ObjectOutputStream(byteArrayOutputStream)
+    objectOutputStream.writeObject(person)
+    objectOutputStream.close()
+
+    // Create a JMS BytesMessage
+    val message = session.createBytesMessage()
+    message.writeBytes(byteArrayOutputStream.toByteArray)
+
+    // Send the message
+    producer.send(message)
+    println(s"Sent: $person")
+
+    // Cleanup
+    producer.close()
+    session.close()
+    connection.close()
+  }
+}
+
+
+Consumer.scala
+---------------
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms._
+import java.io.{ByteArrayInputStream, ObjectInputStream}
+
+object Consumer {
+  def main(args: Array[String]): Unit = {
+    val brokerUrl = "tcp://localhost:61616" // Update if needed
+    val queueName = "testQueue"
+
+    val connectionFactory = new ActiveMQConnectionFactory(brokerUrl)
+    val connection = connectionFactory.createConnection()
+    connection.start()
+
+    val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+    val queue = session.createQueue(queueName)
+    val consumer = session.createConsumer(queue)
+
+    println("Waiting for messages...")
+    val message = consumer.receive()
+
+    message match {
+      case bytesMessage: BytesMessage =>
+        val byteArray = new Array[Byte](bytesMessage.getBodyLength.toInt)
+        bytesMessage.readBytes(byteArray)
+
+        val byteArrayInputStream = new ByteArrayInputStream(byteArray)
+        val objectInputStream = new ObjectInputStream(byteArrayInputStream)
+        val person = objectInputStream.readObject().asInstanceOf[Person]
+
+        println(s"Received: $person")
+      case _ =>
+        println("Received non-BytesMessage")
+    }
+
+    // Cleanup
+    consumer.close()
+    session.close()
+    connection.close()
+  }
+}
