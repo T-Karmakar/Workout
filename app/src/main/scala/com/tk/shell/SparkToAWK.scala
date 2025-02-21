@@ -1,11 +1,12 @@
 package com.tk.shell
 
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import sys.process._
+import scala.language.postfixOps
+
 class SparkToAWK {
 
 }
-
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import sys.process._
 
 object SparkToAWK {
   def main(args: Array[String]): Unit = {

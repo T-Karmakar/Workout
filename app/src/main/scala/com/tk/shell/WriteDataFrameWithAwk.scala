@@ -1,11 +1,11 @@
 package com.tk.shell
 
+import org.apache.spark.sql.{DataFrame, SparkSession}
+import sys.process._
+
 class WriteDataFrameWithAwk {
 
 }
-
-import org.apache.spark.sql.{DataFrame, SparkSession}
-import sys.process._
 
 object WriteDataFrameWithAwk {
   def main(args: Array[String]): Unit = {
@@ -37,6 +37,7 @@ object WriteDataFrameWithAwk {
       // Pass the data to awk
       val output = command #< new java.io.ByteArrayInputStream(data.getBytes)
       output.!!
+      (): Unit
     }
   }
 }

@@ -27,7 +27,7 @@ object WriteDataFrameWithSed {
     spark.stop()
   }
 
-  def writeDataFrameWithSed(df: DataFrame, filePath: String): Unit = {
+  private def writeDataFrameWithSed(df: DataFrame, filePath: String): Unit = {
     // Convert DataFrame rows to a single string with newline separation
     df.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
       val data = partition.map(row => row.mkString(",")).mkString("\n")
@@ -38,6 +38,7 @@ object WriteDataFrameWithSed {
       // Pass the data to sed
       val output = command #< new java.io.ByteArrayInputStream(data.getBytes)
       output.!!
+      (): Unit
     }
   }
 }

@@ -5,6 +5,9 @@ class DFToAWK {
 }
 
 import org.apache.spark.sql.{DataFrame, SparkSession}
+//import org.apache.spark.sql.SparkSession
+
+import java.io.{BufferedWriter, FileWriter}
 
 object DFToAWK {
   def main(args: Array[String]): Unit = {
@@ -27,25 +30,38 @@ object DFToAWK {
     spark.stop()
   }
 
-  def writeDataFrameToDatUsingAWK(df: DataFrame, filePath: String): Unit = {
+  private def writeDataFrameToDatUsingAWK(df: DataFrame, filePath: String): Unit = {
     // Use foreachPartition to process each partition separately
-    df.foreachPartition { partition =>
+    df.foreachPartition { partition: Iterator[org.apache.spark.sql.Row] =>
       // Convert the partition to a string
-      val partitionData = partition.map(row => row.mkString(",")).mkString("\n")
+      //val partitionData = partition.map(row => row.mkString(",")).mkString("\n")
+      val fileWriter = new BufferedWriter(new FileWriter(filePath, true)) // Append mode
+      //val partitionData = partition.foreach(row => row.mkString(",") + "\n")
+      // Iterate over the partition and write each row as CSV
+      partition.foreach { row =>
+        fileWriter.write(row.mkString(",") + "\n")
+      }
+      fileWriter.close()
 
       // Write the partition data to stdout and pipe it to awk
-      val process = new ProcessBuilder("awk", "{print $0}", ">", filePath)
+      /*val process = new ProcessBuilder("awk", "{print $0}", ">", filePath)
         .redirectOutput(ProcessBuilder.Redirect.appendTo(new java.io.File(filePath)))
-        .start()
+        .start()*/
+
+      //val awkCommand = s"""awk '{print $0}' $filePath > ${filePath}_processed"""
+      val awkCommand = s"""awk '{print $$}' > ${filePath}_processed"""
+      val process = Runtime.getRuntime.exec(Array("bash", "-c", awkCommand))
+      process.waitFor()
 
       // Write the data to the process's stdin
-      val outputStream = process.getOutputStream
+      /*val outputStream = process.getOutputStream
       outputStream.write(partitionData.getBytes)
       outputStream.flush()
-      outputStream.close()
+      outputStream.close()*/
 
       // Wait for the process to finish
-      process.waitFor()
+      //process.waitFor()
+      (): Unit
     }
   }
 }

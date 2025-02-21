@@ -25,7 +25,7 @@ object DataFrameToAwk {
 
     // Use Spark to stream data to AWK
     df.rdd.foreachPartition { partition =>
-      val process = new ProcessBuilder("/bin/sh", "-c", awkCommand).start()
+      val process = new java.lang.ProcessBuilder("/bin/sh", "-c", awkCommand).start()
       val writer = new BufferedWriter(new OutputStreamWriter(process.getOutputStream))
 
       try {
