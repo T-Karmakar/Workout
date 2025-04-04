@@ -1,0 +1,65 @@
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
+
+// Assuming you have your Dataset[Row] named 'data'
+val data: Dataset[Row] = ??? // Your 13 million rows Dataset[Row]
+
+// Repartitioning to control the number of output files
+val numPartitions = 10 // Adjust based on your cluster and desired file size
+val repartitionedData = data.repartition(numPartitions)
+
+// If you need to manipulate the data before writing, do it here.
+// For example, convert to a CSV-like string:
+val stringData = repartitionedData.rdd.map(row => {
+    row.toSeq.map(value => {
+        if (value == null) "" else value.toString // Handle null values
+    }).mkString(",") // Use comma as delimiter
+})
+
+// Write the RDD as text files (each partition becomes a file)
+stringData.saveAsTextFile("output.dat")
+
+//If you must have one file, collect and write. This is usually not recommended for large datasets.
+//This will cause driver memory issues.
+//val oneFileString = stringData.collect().mkString("\n")
+//import java.io._
+//val pw = new PrintWriter(new File("output_onefile.dat"))
+//pw.write(oneFileString)
+//pw.close()
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+import org.apache.spark.sql.Dataset
+import org.apache.spark.sql.SparkSession
+
+object WriteLargeStringArray {
+  def main(args: Array[String]): Unit = {
+    val spark = SparkSession.builder()
+      .appName("WriteLargeStringArray")
+      // Add any other Spark configurations as needed
+      .master("local[*]") // Use a proper master in a cluster environment
+      .getOrCreate()
+
+    import spark.implicits._
+
+    // Assuming your Dataset[Row] is named 'inputDataset' and the column
+    // containing the large string is named 'stringValue'
+
+    // Sample data (replace with your actual Dataset)
+    val data = Seq(
+      Row("[value1,value2,value3]"),
+      Row("[another,set,of,values]")
+    )
+    val inputDataset: Dataset[Row] = spark.createDataFrame(data, new org.apache.spark.sql.types.StructType().add("stringValue", org.apache.spark.sql.types.StringType))
+
+    val outputFilePath = "output.dat"
+
+    // Efficiently transform the data and write to file
+    inputDataset.rdd.map { row =>
+      val stringValue = row.getString(0)
+      stringValue.stripPrefix("[").stripSuffix("]") + "\n"
+    }.saveAsTextFile(outputFilePath)
+
+    spark.stop()
+  }
+}
