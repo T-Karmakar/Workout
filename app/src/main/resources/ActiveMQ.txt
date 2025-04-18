@@ -1,0 +1,337 @@
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms.{Session, TextMessage}
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+
+object ActiveMQProducer {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("ActiveMQProducer").setMaster("local[*]") // Adjust master as needed
+    val sc = new SparkContext(conf)
+
+    val activeMQBrokerURL = "tcp://localhost:61616" // Replace with your ActiveMQ broker URL
+    val queueName = "myQueue"
+
+    val connectionFactory = new ActiveMQConnectionFactory(activeMQBrokerURL)
+    var connection: javax.jms.Connection = null
+    var session: Session = null
+    var producer: javax.jms.MessageProducer = null
+
+    try {
+      connection = connectionFactory.createConnection()
+      connection.start()
+      session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+      val destination = session.createQueue(queueName)
+      producer = session.createProducer(destination)
+
+      val numberOfMessages = 50000
+
+      println(s"Sending $numberOfMessages messages to ActiveMQ queue: $queueName")
+
+      for (i <- 1 to numberOfMessages) {
+        val messageText = s"Message number $i from Spark"
+        val message = session.createTextMessage(messageText)
+        producer.send(message)
+        if (i % 1000 == 0) { // Print progress every 1000 messages
+          println(s"Sent $i messages")
+        }
+      }
+
+      println("All messages sent successfully.")
+
+    } catch {
+      case e: Exception => println(s"Error sending messages: ${e.getMessage}")
+    } finally {
+      if (producer != null) producer.close()
+      if (session != null) session.close()
+      if (connection != null) connection.close()
+      if (sc != null) sc.stop()
+    }
+  }
+}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms.{Session, TextMessage}
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+
+object ActiveMQProducerSpark {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("ActiveMQProducerSpark").setMaster("local[*]") // Adjust master as needed
+    val sc = new SparkContext(conf)
+
+    val activeMQBrokerURL = "tcp://localhost:61616" // Replace with your ActiveMQ broker URL
+    val queueName = "myQueue"
+    val numberOfMessages = 50000
+
+    val messagesRDD = sc.parallelize(1 to numberOfMessages, 10) // Create an RDD with partitions
+
+    messagesRDD.foreachPartition { partitionOfIndices =>
+      val connectionFactory = new ActiveMQConnectionFactory(activeMQBrokerURL)
+      var connection: javax.jms.Connection = null
+      var session: Session = null
+      var producer: javax.jms.MessageProducer = null
+
+      try {
+        connection = connectionFactory.createConnection()
+        connection.start()
+        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+        val destination = session.createQueue(queueName)
+        producer = session.createProducer(destination)
+
+        partitionOfIndices.foreach { index =>
+          val messageText = s"Message number $index from Spark (Partition)"
+          val message = session.createTextMessage(messageText)
+          producer.send(message)
+        }
+      } catch {
+        case e: Exception => println(s"Error sending messages from partition: ${e.getMessage}")
+      } finally {
+        if (producer != null) producer.close()
+        if (session != null) session.close()
+        if (connection != null) connection.close()
+      }
+    }
+
+    println(s"Potentially distributed sending of $numberOfMessages messages initiated.")
+    sc.stop()
+  }
+}
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms.{Session, TextMessage}
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+
+object ActiveMQProducerBatched {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("ActiveMQProducerBatched").setMaster("local[*]") // Adjust master as needed
+    val sc = new SparkContext(conf)
+
+    val activeMQBrokerURL = "tcp://localhost:61616" // Replace with your ActiveMQ broker URL
+    val queueName = "myBatchedQueue"
+    val numberOfMessages = 50000
+    val batchSize = 1000 // Adjust batch size as needed
+
+    // 1. Generate RDD of message batches
+    val messageBatchesRDD = sc.parallelize(1 to numberOfMessages)
+      .grouped(batchSize)
+      .map(_.map(i => s"Message number $i in batch from Spark"))
+
+    println(s"Generating and sending $numberOfMessages messages in batches of $batchSize to ActiveMQ queue: $queueName")
+
+    // 2. Iterate through batches and send
+    messageBatchesRDD.collect().foreach { messageBatch =>
+      val connectionFactory = new ActiveMQConnectionFactory(activeMQBrokerURL)
+      var connection: javax.jms.Connection = null
+      var session: Session = null
+      var producer: javax.jms.MessageProducer = null
+
+      try {
+        connection = connectionFactory.createConnection()
+        connection.start()
+        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+        val destination = session.createQueue(queueName)
+        producer = session.createProducer(destination)
+
+        messageBatch.foreach { messageText =>
+          val message = session.createTextMessage(messageText)
+          producer.send(message)
+        }
+        println(s"Sent batch of ${messageBatch.size} messages.")
+
+      } catch {
+        case e: Exception => println(s"Error sending batch: ${e.getMessage}")
+      } finally {
+        if (producer != null) producer.close()
+        if (session != null) session.close()
+        if (connection != null) connection.close()
+      }
+    }
+
+    println("All batches sent successfully.")
+    sc.stop()
+  }
+}
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms.{Session, TextMessage, CompletionListener, DeliveryMode}
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+import java.util.concurrent.atomic.AtomicInteger
+
+object ActiveMQProducerAsyncBatched {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("ActiveMQProducerAsyncBatched").setMaster("local[*]") // Adjust master as needed
+    val sc = new SparkContext(conf)
+
+    val activeMQBrokerURL = "tcp://localhost:61616" // Replace with your ActiveMQ broker URL
+    val queueName = "myAsyncBatchedQueue"
+    val numberOfMessages = 50000
+    val batchSize = 500 // Adjust batch size as needed
+
+    // 1. Generate RDD of message batches
+    val messageBatchesRDD = sc.parallelize(1 to numberOfMessages)
+      .grouped(batchSize)
+      .map(_.map(i => s"Async Message number $i in batch from Spark"))
+
+    println(s"Generating and asynchronously sending $numberOfMessages messages in batches of $batchSize to ActiveMQ queue: $queueName")
+
+    // 2. Iterate through batches and send asynchronously
+    messageBatchesRDD.collect().foreach { messageBatch =>
+      val connectionFactory = new ActiveMQConnectionFactory(activeMQBrokerURL)
+      var connection: javax.jms.Connection = null
+      var session: Session = null
+      var producer: javax.jms.MessageProducer = null
+      val sentCount = new AtomicInteger(0)
+      val latch = new java.util.concurrent.CountDownLatch(messageBatch.size)
+
+      try {
+        connection = connectionFactory.createConnection()
+        connection.start()
+        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE) // Consider using CLIENT_ACKNOWLEDGE or TRANSACTED for better reliability
+        val destination = session.createQueue(queueName)
+        producer = session.createProducer(destination)
+        producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT) // Or PERSISTENT depending on your needs
+
+        println(s"Sending batch of ${messageBatch.size} messages asynchronously...")
+
+        messageBatch.foreach { messageText =>
+          val message = session.createTextMessage(messageText)
+          producer.send(message, new CompletionListener {
+            override def onCompletion(message: javax.jms.Message): Unit = {
+              sentCount.incrementAndGet()
+              latch.countDown()
+              // Optionally log successful send
+              // println(s"Async send completed for: ${message.getBody(classOf[String])}")
+            }
+
+            override def onException(message: javax.jms.Message, exception: Exception): Unit = {
+              System.err.println(s"Error sending message: ${exception.getMessage} for: ${message.getBody(classOf[String])}")
+              latch.countDown()
+              // Handle the error appropriately (e.g., retry, logging)
+            }
+          })
+        }
+
+        // Wait for all messages in the batch to be sent (or to fail)
+        latch.await()
+        println(s"Finished initiating asynchronous send for batch of ${messageBatch.size} messages. ${sentCount.get()} succeeded.")
+
+      } catch {
+        case e: Exception => println(s"Error sending batch asynchronously: ${e.getMessage}")
+      } finally {
+        if (producer != null) producer.close()
+        if (session != null) session.close()
+        if (connection != null) connection.close()
+      }
+    }
+
+    println("Initiated asynchronous sending for all batches.")
+    sc.stop()
+  }
+}
+
+Explanation of Asynchronous Sending:
+
+    CompletionListener: The core of asynchronous JMS is the CompletionListener interface. When you call producer.send(message, listener), the send method returns immediately, and the actual delivery of the message happens in the background. The JMS provider then calls either the onCompletion method if the send is successful or the onException method if an error occurs.
+    CountDownLatch for Batch Tracking: To know when all messages in a batch have been attempted to be sent (either successfully or with an error), we use a CountDownLatch. It's initialized with the number of messages in the batch. Each time onCompletion or onException is called for a message, the latch is decremented. The latch.await() call blocks until the latch count reaches zero, indicating that all send operations for the current batch have completed (or at least attempted).
+    AtomicInteger for Success Count: We use an AtomicInteger to keep track of the number of successfully sent messages within each batch in a thread-safe manner.
+    DeliveryMode: The producer.setDeliveryMode() method allows you to specify whether messages should be persistent (DeliveryMode.PERSISTENT) or non-persistent (DeliveryMode.NON_PERSISTENT). Choose based on your reliability requirements. Non-persistent messages are faster but are lost if the broker crashes before they are consumed.
+    Error Handling in CompletionListener: The onException method in the CompletionListener is crucial for handling send failures. You should implement appropriate error logging and potentially retry mechanisms here.
+    Acknowledgment Mode: The example uses Session.AUTO_ACKNOWLEDGE. For asynchronous sending, especially with potential failures, you might consider Session.CLIENT_ACKNOWLEDGE or JMS transactions (session.beginTransaction(), session.commit(), session.rollback()) for more robust message delivery guarantees. However, these add complexity.
+
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms.{Session, TextMessage, MessageProducer}
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+import scala.concurrent.{Future, ExecutionContext}
+import scala.util.{Success, Failure}
+import java.util.concurrent.Executors
+
+object AsyncActiveMQProducerBatched {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("AsyncActiveMQProducerBatched").setMaster("local[*]") // Adjust master
+    val sc = new SparkContext(conf)
+    implicit val ec = ExecutionContext.fromExecutor(Executors.newFixedThreadPool(5)) // Thread pool for async ops
+
+    val activeMQBrokerURL = "tcp://localhost:61616" // Replace with your ActiveMQ broker URL
+    val queueName = "myAsyncQueue"
+    val numberOfMessages = 50000
+    val batchSize = 100 // Adjust batch size carefully due to message size
+
+    // Generate large message content (50K string)
+    val largeMessageContent = (1 to 50 * 1024).map(_ => 'A').mkString
+
+    // 1. Generate RDD of message batches
+    val messageBatchesRDD = sc.parallelize(1 to numberOfMessages)
+      .grouped(batchSize)
+      .map(_.map(i => s"Message $i: $largeMessageContent"))
+
+    println(s"Generating and asynchronously sending $numberOfMessages messages (50K each) in batches of $batchSize to $queueName")
+
+    messageBatchesRDD.foreachPartitionAsync { partitionOfBatches =>
+      Future { // Execute processing for each partition asynchronously
+        val connectionFactory = new ActiveMQConnectionFactory(activeMQBrokerURL)
+        var connection: javax.jms.Connection = null
+        var session: Session = null
+        var producer: MessageProducer = null
+
+        try {
+          connection = connectionFactory.createConnection()
+          connection.start()
+          session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+          val destination = session.createQueue(queueName)
+          producer = session.createProducer(destination)
+
+          partitionOfBatches.foreach { messageBatch =>
+            val futures = messageBatch.map { messageText =>
+              Future { // Asynchronously send each message
+                val message = session.createTextMessage(messageText)
+                producer.send(message)
+              }
+            }
+
+            // Optionally, wait for all futures in the batch to complete
+            Future.sequence(futures).onComplete {
+              case Success(_) => println(s"Batch of ${messageBatch.size} sent asynchronously from partition.")
+              case Failure(e) => println(s"Error sending batch asynchronously from partition: ${e.getMessage}")
+            }
+            // Introduce a small delay to avoid overwhelming ActiveMQ (adjust as needed)
+            Thread.sleep(10)
+          }
+        } catch {
+          case e: Exception => println(s"Error in partition processing: ${e.getMessage}")
+        } finally {
+          if (producer != null) producer.close()
+          if (session != null) session.close()
+          if (connection != null) connection.close()
+        }
+      }
+    }
+
+    // Keep the main thread alive for a while to allow asynchronous operations to complete
+    Thread.sleep(60 * 1000) // Adjust based on the expected time to send all messages
+
+    println("Asynchronous sending initiated. Check logs for completion.")
+    sc.stop()
+  }
+
+  // Extension method for asynchronous foreachPartition
+  implicit class RichRDD[T](rdd: org.apache.spark.rdd.RDD[T]) {
+    def foreachPartitionAsync(f: Iterator[T] => Future[Unit])(implicit ec: ExecutionContext): Unit = {
+      rdd.foreachPartition(iterator => f(iterator))
+    }
+  }
+}
