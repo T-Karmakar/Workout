@@ -335,3 +335,142 @@ object AsyncActiveMQProducerBatched {
     }
   }
 }
+
+
+##############################################################################################################
+
+You're right, leveraging JMX to monitor ActiveMQ queue metrics like QueueSize programmatically from your Spark Scala application provides valuable insights into the queue's state, even though it's not directly through the JMS API.
+
+Here's a sample implementation demonstrating how to connect to the ActiveMQ JMX server and retrieve the QueueSize metric for a specific queue using Spark Scala.
+
+Dependencies:
+
+You'll need to add the following dependency to your build.sbt file:
+Scala
+
+libraryDependencies += "javax.management" % "javax.management-api" % "1.0.3" // Or a compatible version
+
+Sample Implementation:
+Scala
+
+import javax.management.remote.{JMXConnector, JMXConnectorFactory, JMXServiceURL}
+import javax.management.{ObjectName}
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+
+object ActiveMQJMXMonitor {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("ActiveMQJMXMonitor").setMaster("local[*]") // Adjust master
+    val sc = new SparkContext(conf)
+
+    val jmxURL = "service:jmx:rmi:///jndi/rmi://localhost:1099/jmxrmi" // Replace with your ActiveMQ JMX URL
+    val queueName = "myAsyncQueue" // Replace with the name of the queue you want to monitor
+
+    // Function to fetch the QueueSize
+    def getQueueSize(jmxUrl: String, queue: String): Option[Int] = {
+      var jmxc: JMXConnector = null
+      try {
+        val serviceURL = new JMXServiceURL(jmxUrl)
+        jmxc = JMXConnectorFactory.connect(serviceURL, null)
+        val mbsc = jmxc.getMBeanServerConnection
+
+        val objectName = new ObjectName(s"org.apache.activemq:brokerName=localhost,destinationName=$queue,destinationType=Queue,*" ) // Adjust brokerName if needed
+        val mbeans = mbsc.queryMBeans(objectName, null)
+
+        if (mbeans.isEmpty) {
+          println(s"Queue '$queue' not found in JMX.")
+          None
+        } else {
+          val mbeanInfo = mbeans.iterator().next().getObjectName
+          val queueSize = mbsc.getAttribute(mbeanInfo, "QueueSize").asInstanceOf[java.lang.Integer].intValue()
+          Some(queueSize)
+        }
+      } catch {
+        case e: Exception =>
+          println(s"Error connecting to JMX or retrieving QueueSize: ${e.getMessage}")
+          None
+      } finally {
+        try {
+          if (jmxc != null) jmxc.close()
+        } catch {
+          case e: Exception => println(s"Error closing JMX connection: ${e.getMessage}")
+        }
+      }
+    }
+
+    // Example of how to use the function
+    val currentQueueSize = getQueueSize(jmxURL, queueName)
+
+    currentQueueSize match {
+      case Some(size) => println(s"Queue '$queueName' size: $size")
+      case None => println(s"Could not retrieve queue size for '$queueName'.")
+    }
+
+    sc.stop()
+  }
+}
+
+Explanation:
+
+    JMX Connection Details:
+        jmxURL: This variable holds the URL of the ActiveMQ JMX server. The default for a local ActiveMQ instance is often service:jmx:rmi:///jndi/rmi://localhost:1099/jmxrmi. Make sure to adjust this if your ActiveMQ instance is configured differently.
+        queueName: Replace "myAsyncQueue" with the actual name of the queue you want to monitor.
+
+    getQueueSize Function:
+        Connect to JMX: It establishes a connection to the JMX server using JMXConnectorFactory.connect().
+        Get MBean Server Connection: It retrieves the MBeanServerConnection from the connector, which allows you to interact with the managed beans (MBeans).
+        Construct Object Name: It creates an ObjectName to identify the MBean for the specific queue. The pattern org.apache.activemq:brokerName=localhost,destinationName=$queue,destinationType=Queue,* is typical for ActiveMQ. You might need to adjust brokerName=localhost if your broker has a different name. The ,* at the end allows matching any MBean with the specified properties.
+        Query MBeans: It queries the MBean server for MBeans matching the constructed ObjectName.
+        Handle Queue Not Found: If no MBeans are found for the given queue name, it prints a message and returns None.
+        Get Queue Size: If MBeans are found, it retrieves the first matching MBean's ObjectName and then gets the value of the QueueSize attribute using mbsc.getAttribute(). The result is cast to java.lang.Integer and then converted to an Int.
+        Error Handling: The try-catch blocks handle potential exceptions during JMX connection or attribute retrieval.
+        Close Connection: The finally block ensures that the JMX connection is closed to release resources.
+
+    Usage Example:
+        The main function calls getQueueSize to retrieve the current size of the specified queue.
+        It then uses a match statement to handle the Option[Int] result, printing the queue size or an error message if the size couldn't be retrieved.
+
+Integrating with Your Asynchronous Producer:
+
+You can integrate this getQueueSize function into your asynchronous producer logic. For example, you could periodically check the queue size before sending more batches or individual messages. However, be mindful of the following:
+
+    Polling Overhead: Frequent polling of JMX metrics can introduce overhead on the ActiveMQ server. Choose a reasonable polling interval.
+    Consistency: The JMX metrics provide a snapshot of the queue state at the time of the query. There might be a slight delay between the query and the actual state when your producer attempts to send.
+    Backpressure Handling: While you can monitor the queue size, it's generally better to rely on ActiveMQ's built-in backpressure mechanisms and handle potential send failures in your asynchronous send callbacks/futures. Using the queue size to prevent sending might be less efficient than letting ActiveMQ manage its resources.
+
+Enhanced Integration (Illustrative):
+
+You could modify your asynchronous producer to periodically log the queue size:
+Scala
+
+// Inside your AsyncActiveMQProducerBatched object
+
+  def main(args: Array[String]): Unit = {
+    // ... (Spark setup, JMX URL, queueName, etc.)
+
+    val monitoringInterval = 5000 // Check queue size every 5 seconds
+
+    val monitoringThread = new Thread(() => {
+      while (true) {
+        getQueueSize(jmxURL, queueName) match {
+          case Some(size) => println(s"Queue '$queueName' size at ${java.time.LocalTime.now()}: $size")
+          case None => println(s"Could not retrieve queue size for '$queueName' for monitoring.")
+        }
+        Thread.sleep(monitoringInterval)
+      }
+    })
+    monitoringThread.setDaemon(true) // Allow the main thread to exit
+    monitoringThread.start()
+
+    // ... (Your asynchronous message sending logic using foreachPartitionAsync)
+
+    Thread.sleep(60 * 1000) // Keep main thread alive
+    sc.stop()
+  }
+
+  // (Include the getQueueSize function here)
+}
+
+This enhanced example starts a separate thread to periodically fetch and print the queue size, providing you with monitoring information while your asynchronous producer is running. Remember to adjust the monitoringInterval as needed.
+
+By using JMX, you gain programmatic access to ActiveMQ's internal metrics, allowing you to monitor queue depth and potentially adapt your producer behavior, although direct backpressure handling through JMS send operations and robust error handling remain crucial.
