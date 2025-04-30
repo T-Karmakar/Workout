@@ -1,3 +1,83 @@
+Great! Here's a **complete runnable Spark Scala example** that:
+
+- Connects to **two different databases** (MySQL and PostgreSQL),
+- Reads from both using **parallel JDBC reads** with partitioning,
+- Joins the data,
+- Displays the result.
+
+---
+
+### ✅ Full Spark Scala Example with Partitioned JDBC Reads
+
+```scala
+import org.apache.spark.sql.{SparkSession, DataFrame}
+import java.util.Properties
+
+object MultiDatabaseSparkApp {
+  def main(args: Array[String]): Unit = {
+    val spark = SparkSession.builder()
+      .appName("Multi-Database JDBC Example")
+      .master("local[*]")  // Use appropriate cluster config in production
+      .getOrCreate()
+
+    // --- Database 1: MySQL ---
+    val db1Url = "jdbc:mysql://host1:3306/database1"
+    val db1Props = new Properties()
+    db1Props.setProperty("user", "db1_user")
+    db1Props.setProperty("password", "db1_password")
+    db1Props.setProperty("driver", "com.mysql.cj.jdbc.Driver")
+
+    val df1: DataFrame = spark.read
+      .option("partitionColumn", "id")
+      .option("lowerBound", "1")
+      .option("upperBound", "100000")
+      .option("numPartitions", "4")
+      .jdbc(db1Url, "table1", db1Props)
+
+    // --- Database 2: PostgreSQL ---
+    val db2Url = "jdbc:postgresql://host2:5432/database2"
+    val db2Props = new Properties()
+    db2Props.setProperty("user", "db2_user")
+    db2Props.setProperty("password", "db2_password")
+    db2Props.setProperty("driver", "org.postgresql.Driver")
+
+    val df2: DataFrame = spark.read
+      .option("partitionColumn", "ref_id")
+      .option("lowerBound", "1")
+      .option("upperBound", "100000")
+      .option("numPartitions", "4")
+      .jdbc(db2Url, "table2", db2Props)
+
+    // --- Join the DataFrames ---
+    val joinedDf = df1.join(df2, df1("id") === df2("ref_id"))
+    joinedDf.show(20)
+
+    spark.stop()
+  }
+}
+```
+
+---
+
+### 📦 Required Dependencies (for `build.sbt` if using sbt)
+
+```scala
+libraryDependencies += "mysql" % "mysql-connector-java" % "8.0.33"
+libraryDependencies += "org.postgresql" % "postgresql" % "42.7.1"
+libraryDependencies += "org.apache.spark" %% "spark-sql" % "3.5.1"
+```
+
+---
+
+### 🔧 Notes
+
+- Replace `host1`, `host2`, table names, and credentials with your actual values.
+- Adjust `partitionColumn`, `lowerBound`, and `upperBound` based on the data in your tables.
+- `partitionColumn` must be numeric or date-like for partitioning to work.
+
+Would you like to also write the joined result back to one of the databases or a file system like S3 or HDFS?
+
+
 ============================================================================================================
 ChatGPT - Option 2
 To **save a list of messages as an RDD in Spark (Scala)** for sending to an **ActiveMQ destination**, you can follow these steps:
