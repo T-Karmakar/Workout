@@ -380,8 +380,76 @@ sc.stop()
 Would you like to package this as a Spark job JAR with CLI args (queue, batch size, etc.)?
 
 
+Sure! If you need to **enrich messages inside a `for` loop before creating the RDD**, here's how to do it **before sending to ActiveMQ** using Spark.
+
+---
+
+## ✅ Scenario
+
+You want to:
+1. **Iterate through a range or collection**
+2. **Enrich** each message (e.g., add timestamps, lookups, UUIDs, etc.)
+3. Create a list or directly an RDD for sending to ActiveMQ.
+
+---
+
+## 🧱 Step-by-Step Example: Enrich in Loop → Build RDD
+
+```scala
+import java.util.UUID
+import java.time.Instant
+import org.apache.spark.{SparkConf, SparkContext}
+
+// Define your case class with enriched fields
+case class MyMessage(id: Int, content: String, uuid: String, timestamp: Long)
+
+// Spark setup
+val conf = new SparkConf().setAppName("MessageEnrichment").setMaster("local[*]")
+val sc = new SparkContext(conf)
+
+// Step 1: Enrich messages inside a for-loop and build the List
+val enrichedMessages = (1 to 50000).map { i =>
+  val uuid = UUID.randomUUID().toString
+  val timestamp = Instant.now().toEpochMilli
+  val content = s"Enriched-Message-$i"
+  MyMessage(id = i, content = content, uuid = uuid, timestamp = timestamp)
+}.toList
+
+// Step 2: Convert to RDD
+val messageRDD = sc.parallelize(enrichedMessages, numSlices = 10)  // You can tune partition count
+```
+
+---
+
+### 🔁 Now You Can Send This RDD to ActiveMQ
+
+Use it with the earlier `ActiveMQBatchSender.sendToActiveMQ` method like this:
+
+```scala
+ActiveMQBatchSender.sendToActiveMQ(
+  rdd = messageRDD,
+  queueName = "myQueue",
+  brokerUrl = "tcp://localhost:61616",
+  batchSize = 1000,
+  maxConnections = 10
+)
+```
+
+---
+
+### 🧠 Tips for Enrichment
+- Pull lookup data from external sources (e.g., Hive, databases) **before** the loop if possible.
+- Use `Instant.now()` inside the loop for per-message timestamping.
+- Use `UUID.randomUUID()` for unique IDs if needed per message.
+
+---
+
+Would you like an example where enrichment includes **external lookup data** or joins from another RDD?
+
 
 ============================================================================================================
+
+
 Gemini - Option 1 (Experiment with the tuning parameters (numPartitions, batchSize, threadsPerTask).)
 import org.apache.activemq.ActiveMQConnectionFactory
 import javax.jms.{Session, TextMessage, MessageProducer}
