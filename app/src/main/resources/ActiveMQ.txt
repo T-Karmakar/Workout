@@ -1,3 +1,475 @@
+============================================================================================================
+ChatGPT - Option 2
+To **save a list of messages as an RDD in Spark (Scala)** for sending to an **ActiveMQ destination**, you can follow these steps:
+
+---
+
+### ✅ Step-by-Step Example: Creating an RDD of Messages
+
+Assume you have a list of case class objects (e.g., `MyMessage`) that you want to convert to an RDD:
+
+```scala
+case class MyMessage(id: Int, content: String)
+
+// Example: create a list of 50,000 messages
+val messageList = (1 to 50000).map(i => MyMessage(i, s"Message-$i")).toList
+```
+
+---
+
+### 🔁 Step 1: Parallelize the List to Create an RDD
+
+```scala
+val sc: SparkContext = ...
+val messageRDD = sc.parallelize(messageList, numSlices = 10)  // numSlices = number of partitions
+```
+
+- `numSlices` (e.g., 10) defines the parallelism level. More partitions → better performance with ActiveMQ if connections are parallelized.
+
+---
+
+### 📤 Step 2: Send RDD Contents to ActiveMQ
+
+You can use `foreachPartition` to send messages in parallel from each partition:
+
+```scala
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms._
+import com.fasterxml.jackson.databind.ObjectMapper
+
+messageRDD.foreachPartition { partition =>
+  val connectionFactory = new ActiveMQConnectionFactory("tcp://localhost:61616")
+  val connection = connectionFactory.createConnection()
+  connection.start()
+
+  val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+  val destination = session.createQueue("myQueue")
+  val producer = session.createProducer(destination)
+  producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
+
+  val mapper = new ObjectMapper()
+
+  partition.foreach { msg =>
+    val json = mapper.writeValueAsString(msg)
+    val message = session.createTextMessage(json)
+    producer.send(message)
+  }
+
+  producer.close()
+  session.close()
+  connection.close()
+}
+```
+
+---
+
+### ⚠️ Notes
+
+- Use `PooledConnectionFactory` for better performance if sending high volumes.
+- Tune Spark executor memory/CPU and partition count to avoid bottlenecks.
+- If message objects are already in JSON, skip serialization.
+
+---
+
+Would you like this to be adapted for **PooledConnectionFactory** or **Kafka instead of ActiveMQ**?
+
+
+Great! Here's how you can **use `PooledConnectionFactory` with Spark RDD** to send messages to an **ActiveMQ destination efficiently**.
+
+---
+
+## ✅ Full Working Example with `PooledConnectionFactory`
+
+### 🧱 Dependencies (build.sbt)
+Ensure your project includes the required libraries:
+
+```scala
+libraryDependencies ++= Seq(
+  "org.apache.activemq" % "activemq-client" % "5.17.6",
+  "org.apache.activemq" % "activemq-pool" % "5.17.6", // for pooled connection factory
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.17.1"
+)
+```
+
+---
+
+### 💻 Code Example
+
+```scala
+import org.apache.activemq.ActiveMQConnectionFactory
+import org.apache.activemq.jms.pool.PooledConnectionFactory
+import javax.jms._
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.spark.{SparkConf, SparkContext}
+
+// Sample message case class
+case class MyMessage(id: Int, content: String)
+
+// Create SparkContext
+val conf = new SparkConf().setAppName("ActiveMQSender").setMaster("local[*]")
+val sc = new SparkContext(conf)
+
+// Create 50,000 messages
+val messageList = (1 to 50000).map(i => MyMessage(i, s"Message-$i")).toList
+
+// Parallelize into RDD
+val messageRDD = sc.parallelize(messageList, numSlices = 10)  // Adjust slices as needed
+
+// Broadcast the pooled connection factory
+val brokerUrl = "tcp://localhost:61616"
+val connectionFactory = new ActiveMQConnectionFactory(brokerUrl)
+val pooledFactory = new PooledConnectionFactory()
+pooledFactory.setConnectionFactory(connectionFactory)
+pooledFactory.setMaxConnections(10)
+val broadcastFactory = sc.broadcast(pooledFactory)
+
+val objectMapper = new ObjectMapper()
+
+messageRDD.foreachPartition { partition =>
+  val connection = broadcastFactory.value.createConnection()
+  connection.start()
+
+  val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+  val destination = session.createQueue("myQueue")
+  val producer = session.createProducer(destination)
+  producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT) // Set to PERSISTENT if required
+
+  partition.foreach { msg =>
+    val json = objectMapper.writeValueAsString(msg)
+    val message = session.createTextMessage(json)
+    producer.send(message)
+  }
+
+  producer.close()
+  session.close()
+  connection.close()
+}
+
+// Optionally stop SparkContext
+sc.stop()
+```
+
+---
+
+### 🧠 Tips for Speed
+
+- **Use `DeliveryMode.NON_PERSISTENT`** for faster sending if durability is not required.
+- **10+ parallel partitions** help distribute load across connections.
+- **Avoid complex serialization** – keep message objects lightweight.
+
+---
+
+Would you like to see the same implementation using **batching (e.g., send 1000 messages at once)** for further optimization?
+
+Perfect — batching can significantly improve throughput when sending messages to ActiveMQ. Here's how you can modify the Spark RDD code to **send messages in batches** (e.g., 1000 at a time) **efficiently using `PooledConnectionFactory`**.
+
+---
+
+## ✅ Updated Spark Scala Code with Batching
+
+### 📦 Assumptions:
+- You're working with case class `MyMessage(id: Int, content: String)`.
+- You want to send JSON-serialized messages.
+- Each partition sends messages in **batches of 1000** to ActiveMQ.
+
+---
+
+### 🧱 Required Dependencies (repeat from above)
+
+```scala
+libraryDependencies ++= Seq(
+  "org.apache.activemq" % "activemq-client" % "5.17.6",
+  "org.apache.activemq" % "activemq-pool" % "5.17.6",
+  "com.fasterxml.jackson.core" % "jackson-databind" % "2.17.1"
+)
+```
+
+---
+
+### 💻 Full Code Example (with batching):
+
+```scala
+import org.apache.activemq.ActiveMQConnectionFactory
+import org.apache.activemq.jms.pool.PooledConnectionFactory
+import javax.jms._
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.spark.{SparkConf, SparkContext}
+
+// Define the message case class
+case class MyMessage(id: Int, content: String)
+
+// Initialize Spark
+val conf = new SparkConf().setAppName("ActiveMQBatchSender").setMaster("local[*]")
+val sc = new SparkContext(conf)
+
+// Create the messages
+val messageList = (1 to 50000).map(i => MyMessage(i, s"Message-$i")).toList
+val messageRDD = sc.parallelize(messageList, numSlices = 10)  // control parallelism
+
+// Setup and broadcast PooledConnectionFactory
+val brokerUrl = "tcp://localhost:61616"
+val connectionFactory = new ActiveMQConnectionFactory(brokerUrl)
+val pooledFactory = new PooledConnectionFactory()
+pooledFactory.setConnectionFactory(connectionFactory)
+pooledFactory.setMaxConnections(10)
+val broadcastFactory = sc.broadcast(pooledFactory)
+
+val objectMapper = new ObjectMapper()
+
+// Batch size
+val batchSize = 1000
+
+messageRDD.foreachPartition { partition =>
+  val connection = broadcastFactory.value.createConnection()
+  connection.start()
+
+  val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+  val destination = session.createQueue("myQueue")
+  val producer = session.createProducer(destination)
+  producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
+
+  // Group messages into batches
+  partition.grouped(batchSize).foreach { batch =>
+    val messages = batch.map { msg =>
+      val json = objectMapper.writeValueAsString(msg)
+      session.createTextMessage(json)
+    }
+
+    // Efficiently send each message in the batch
+    messages.foreach(producer.send)
+  }
+
+  producer.close()
+  session.close()
+  connection.close()
+}
+
+sc.stop()
+```
+
+---
+
+### 🚀 Why This Is Fast
+- **Connection pooling** avoids expensive reconnects.
+- **Parallel sending** via RDD partitions.
+- **Batch processing** minimizes session/protocol overhead.
+- **Asynchronous broker config** (ensure `useAsyncSend=true` in broker URI for best results).
+
+---
+
+Would you like to add **error handling**, **metrics logging**, or convert this into a reusable function or Spark job?
+
+Great — let’s upgrade this solution into a **robust, reusable Spark job** with:
+
+1. ✅ **Error handling** (so one bad message or batch doesn't kill the whole job)  
+2. 📊 **Metrics logging** (e.g., sent count, batch count, partition ID)  
+3. 🔁 **Reusable function** that you can plug into any Spark project
+
+---
+
+## ✅ Final Reusable Function with Logging & Error Handling
+
+```scala
+import org.apache.activemq.ActiveMQConnectionFactory
+import org.apache.activemq.jms.pool.PooledConnectionFactory
+import javax.jms._
+import com.fasterxml.jackson.databind.ObjectMapper
+import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
+import org.slf4j.LoggerFactory
+
+// Message case class
+case class MyMessage(id: Int, content: String)
+
+object ActiveMQBatchSender {
+
+  private val logger = LoggerFactory.getLogger("ActiveMQBatchSender")
+  private val objectMapper = new ObjectMapper()
+
+  def sendToActiveMQ(
+      rdd: RDD[MyMessage],
+      queueName: String,
+      brokerUrl: String,
+      batchSize: Int = 1000,
+      maxConnections: Int = 10
+  ): Unit = {
+
+    val connectionFactory = new ActiveMQConnectionFactory(brokerUrl)
+    val pooledFactory = new PooledConnectionFactory()
+    pooledFactory.setConnectionFactory(connectionFactory)
+    pooledFactory.setMaxConnections(maxConnections)
+
+    val sc = rdd.context
+    val broadcastFactory = sc.broadcast(pooledFactory)
+
+    rdd.foreachPartition { partition =>
+      val partitionId = TaskContext.getPartitionId()
+      var sentCount = 0
+      var batchCount = 0
+
+      try {
+        val connection = broadcastFactory.value.createConnection()
+        connection.start()
+
+        val session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+        val destination = session.createQueue(queueName)
+        val producer = session.createProducer(destination)
+        producer.setDeliveryMode(DeliveryMode.NON_PERSISTENT)
+
+        partition.grouped(batchSize).foreach { batch =>
+          try {
+            batch.foreach { msg =>
+              val json = objectMapper.writeValueAsString(msg)
+              val message = session.createTextMessage(json)
+              producer.send(message)
+              sentCount += 1
+            }
+            batchCount += 1
+          } catch {
+            case e: Exception =>
+              logger.error(s"[Partition $partitionId] Error sending batch: ${e.getMessage}", e)
+          }
+        }
+
+        logger.info(s"[Partition $partitionId] Sent $sentCount messages in $batchCount batches.")
+
+        producer.close()
+        session.close()
+        connection.close()
+      } catch {
+        case e: Exception =>
+          logger.error(s"[Partition $partitionId] Error setting up JMS connection: ${e.getMessage}", e)
+      }
+    }
+  }
+}
+```
+
+---
+
+## 🧪 Example Usage
+
+```scala
+val conf = new SparkConf().setAppName("SendToActiveMQ").setMaster("local[*]")
+val sc = new SparkContext(conf)
+
+val messages = (1 to 50000).map(i => MyMessage(i, s"Message $i")).toList
+val messageRDD = sc.parallelize(messages, 10)
+
+ActiveMQBatchSender.sendToActiveMQ(
+  rdd = messageRDD,
+  queueName = "myQueue",
+  brokerUrl = "tcp://localhost:61616",
+  batchSize = 1000,
+  maxConnections = 10
+)
+
+sc.stop()
+```
+
+---
+
+## 🧠 Optional Enhancements
+
+- Add retry logic for transient JMS errors (e.g., `IOException`, `JMSException`)
+- Collect partition metrics to a log file or monitoring system
+- Extend to support **topics** as well as queues
+
+---
+
+Would you like to package this as a Spark job JAR with CLI args (queue, batch size, etc.)?
+
+
+
+============================================================================================================
+Gemini - Option 1 (Experiment with the tuning parameters (numPartitions, batchSize, threadsPerTask).)
+import org.apache.activemq.ActiveMQConnectionFactory
+import javax.jms.{Session, TextMessage, MessageProducer}
+import org.apache.spark.SparkContext
+import org.apache.spark.SparkConf
+import scala.concurrent.{ExecutionContext, Future}
+import java.util.concurrent.Executors
+import scala.util.{Success, Failure}
+import scala.collection.mutable.ListBuffer
+
+object FastAsyncActiveMQProducer {
+  def main(args: Array[String]): Unit = {
+    val conf = new SparkConf().setAppName("FastAsyncActiveMQProducer").setMaster("local[*]") // Adjust
+    val sc = new SparkContext(conf)
+
+    val activeMQBrokerURL = "tcp://localhost:61616" // Replace
+    val queueName = "fastAsyncQueue"
+    val numberOfMessages = 50000
+    val numPartitions = sc.defaultParallelism * 4 // Increase parallelism
+    val batchSize = 500 // Tune this based on message size and broker capacity
+    val threadsPerTask = 10 // Tune this for async sends within each task
+
+    val messagesRDD = sc.parallelize(1 to numberOfMessages, numPartitions)
+
+    messagesRDD.foreachPartitionAsync { partition =>
+      val connectionFactory = new ActiveMQConnectionFactory(activeMQBrokerURL)
+      var connection: javax.jms.Connection = null
+      var session: Session = null
+      var producer: MessageProducer = null
+      val executorService = Executors.newFixedThreadPool(threadsPerTask)
+      implicit val ec = ExecutionContext.fromExecutor(executorService)
+
+      try {
+        connection = connectionFactory.createConnection()
+        connection.start()
+        session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE)
+        val destination = session.createQueue(queueName)
+        producer = session.createProducer(destination)
+
+        val messageBuffer = new ListBuffer[TextMessage]()
+
+        partition.foreach { i =>
+          val messageText = s"Fast Async Message $i" // Keep message size small for the target
+          val message = session.createTextMessage(messageText)
+          messageBuffer += message
+
+          if (messageBuffer.size >= batchSize) {
+            val batchToSend = messageBuffer.toList
+            messageBuffer.clear()
+            Future {
+              batchToSend.foreach(producer.send)
+            }
+          }
+        }
+
+        // Send any remaining messages in the buffer
+        if (messageBuffer.nonEmpty) {
+          val remainingBatch = messageBuffer.toList
+          Future {
+            remainingBatch.foreach(producer.send)
+          }
+        }
+
+        executorService.shutdown()
+      } catch {
+        case e: Exception => println(s"Error in partition: ${e.getMessage}")
+        if (executorService != null) executorService.shutdownNow()
+      } finally {
+        if (producer != null) producer.close()
+        if (session != null) session.close()
+        if (connection != null) connection.close()
+      }
+    }
+
+    // Keep main thread alive
+    Thread.sleep(150 * 1000) // Allow ample time for completion
+    sc.stop()
+  }
+
+  implicit class RichRDD[T](rdd: org.apache.spark.rdd.RDD[T]) {
+    def foreachPartitionAsync(f: Iterator[T] => Future[Unit])(implicit ec: ExecutionContext): Unit = {
+      rdd.foreachPartition(iterator => f(iterator))
+    }
+  }
+}
+
+============================================================================================================
+
 import org.apache.activemq.ActiveMQConnectionFactory
 import javax.jms.{Session, TextMessage}
 import org.apache.spark.SparkContext
