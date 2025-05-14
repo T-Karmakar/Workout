@@ -1,3 +1,105 @@
+
+When you're using the `activemq-all` JAR (especially older versions), it **bundles multiple transitive logging frameworks** (like commons-logging, log4j 1.x, etc.), which can interfere with your application's own logging (e.g., `logback.xml` with SLF4J). This causes duplicated logs, ignored `logback.xml`, or even weird classpath conflicts.
+
+---
+
+## ✅ Goal
+
+Ensure that **ActiveMQ logging uses your application's logging config**, i.e., `logback.xml`, via **SLF4J + Logback**. No conflicts, no noise.
+
+---
+
+## ✅ Best Solution (Gradle `build.gradle`)
+
+### ✅ Step 1: **Avoid `activemq-all`** – use explicit dependencies instead
+
+Replace this:
+
+```groovy
+implementation 'org.apache.activemq:activemq-all:5.17.6' // or whatever version
+```
+
+With this:
+
+```groovy
+implementation 'org.apache.activemq:activemq-client:5.17.6' // core JMS client
+```
+
+This avoids pulling in **everything** including log4j, slf4j, spring, and more.
+
+---
+
+### ✅ Step 2: Add only what you need, and bridge to SLF4J
+
+```groovy
+// ActiveMQ JMS client
+implementation 'org.apache.activemq:activemq-client:5.17.6'
+
+// Logging setup
+implementation 'ch.qos.logback:logback-classic:1.4.14'  // Or 1.2.x if Java 8
+implementation 'org.slf4j:slf4j-api:2.0.12'             // Match version
+// (Optional) If any lib uses log4j 1.x:
+implementation 'org.slf4j:log4j-over-slf4j:2.0.12'
+// (Optional) If any lib uses commons-logging:
+implementation 'org.slf4j:jcl-over-slf4j:2.0.12'
+```
+
+---
+
+### ✅ Step 3: Exclude transitive log libraries (if using other AMQ modules)
+
+If you *must* use `activemq-all` (not recommended), exclude logging:
+
+```groovy
+implementation('org.apache.activemq:activemq-all:5.17.6') {
+    exclude group: 'log4j'
+    exclude group: 'commons-logging'
+    exclude group: 'org.slf4j'
+}
+```
+
+But really: **use `activemq-client` directly** for cleaner builds.
+
+---
+
+## ✅ Step 4: Use `logback.xml` in `src/main/resources`
+
+Example `logback.xml`:
+
+```xml
+<configuration>
+  <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
+    <encoder>
+      <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger - %msg%n</pattern>
+    </encoder>
+  </appender>
+
+  <root level="INFO">
+    <appender-ref ref="STDOUT"/>
+  </root>
+
+  <logger name="org.apache.activemq" level="WARN"/>
+</configuration>
+```
+
+---
+
+## ✅ Summary
+
+| Problem                         | Fix                                                  |
+| ------------------------------- | ---------------------------------------------------- |
+| `activemq-all` pollutes logging | Use `activemq-client` instead                        |
+| Logging config not respected    | Use SLF4J + Logback with bridges                     |
+| Log duplication or conflict     | Exclude transitive log libs                          |
+| Want full control               | Bridge everything to SLF4J, manage via `logback.xml` |
+
+---
+
+Would you like a complete `build.gradle` sample for your use case (Spark + ActiveMQ + logback)?
+
+
+#########################################################################################################
+
 Running out of disk space or encountering Java heap space errors while processing large datasets like 4 million rows in Spark with limited resources (24 GB RAM and 20 GB disk space) can be challenging. Here are some strategies to manage these issues:
 1. Optimizing Memory Usage
     a. Increase Executor Memory:
