@@ -1,32 +1,33 @@
 package com.tk.db
 
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Dataset, Row, SparkSession}
+
 import java.sql.{Connection, DriverManager, PreparedStatement}
 
 class DataBatchInsert {
-  Object DataBatchInsert {
-    val spark = SparkSession.builder()
+  object DataBatchInsert {
+    private val spark = SparkSession.builder()
       .appName("CSV to MySQL Bulk Insert")
       .config("spark.sql.shuffle.partitions", "200") // Adjust based on cores/memory
       .getOrCreate()
 
     // Adjust the schema or use header = true if CSV has column names
-    val df = spark.read
+    private val df = spark.read
       .option("header", "true")
       .option("inferSchema", "true")
       .csv("/path/to/your/70_million_file.csv")
 
     // Repartition for parallelism (match cluster capacity)
-    val partitionedDF = df.repartition(100)
+    private val partitionedDF = df.repartition(100)
 
     // JDBC & SQL Setup
     val jdbcUrl = "jdbc:mysql://<host>:<port>/<db>?rewriteBatchedStatements=true"
     val user = "yourUser"
     val password = "yourPassword"
-    val insertSQL = "INSERT INTO your_table(col1, col2, col3) VALUES (?, ?, ?)"
+    private val insertSQL = "INSERT INTO your_table(col1, col2, col3) VALUES (?, ?, ?)"
 
     // Efficient insert per partition
-    partitionedDF.foreachPartition { partition =>
+    partitionedDF.foreachPartition { partition: Iterator[Row] =>
       var connection: Connection = null
       var statement: PreparedStatement = null
 
