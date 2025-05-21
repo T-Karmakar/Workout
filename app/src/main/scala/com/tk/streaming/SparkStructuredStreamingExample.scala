@@ -9,7 +9,7 @@ import org.apache.spark.sql.streaming.Trigger
 
 object SparkStructuredStreamingExample {
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder
+    val spark = SparkSession.builder()
       .appName("Spark Structured Streaming Example")
       .master("local[*]") // Adjust as per your cluster setup
       .getOrCreate()

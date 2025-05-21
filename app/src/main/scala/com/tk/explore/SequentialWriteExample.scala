@@ -11,7 +11,7 @@ import java.io.{BufferedWriter, FileWriter}
 object SequentialWriteExample {
 
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder
+    val spark = SparkSession.builder()
       .appName("SequentialWriteExample")
       .master("local[*]") // Adjust as per your cluster setup
       .getOrCreate()

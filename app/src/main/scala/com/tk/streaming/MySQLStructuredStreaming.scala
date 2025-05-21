@@ -11,7 +11,7 @@ class MySQLStructuredStreaming {
 object MySQLStructuredStreaming {
   def main(args: Array[String]): Unit = {
     // Initialize Spark session
-    val spark = SparkSession.builder
+    val spark = SparkSession.builder()
       .appName("Spark Structured Streaming with MySQL")
       .master("local[*]")  // For local testing, use * to use all cores
       .getOrCreate()

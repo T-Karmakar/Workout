@@ -9,7 +9,7 @@ class WriteDataFrameWithAwk {
 
 object WriteDataFrameWithAwk {
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder
+    val spark = SparkSession.builder()
       .appName("Write DataFrame with Awk")
       .master("local[*]")  // Adjust this for your cluster setup
       .getOrCreate()

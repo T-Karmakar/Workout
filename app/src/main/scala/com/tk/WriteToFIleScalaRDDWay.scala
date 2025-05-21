@@ -1,8 +1,10 @@
 package com.tk
 
 import org.apache.spark.sql.DataFrame
-import org.apache.spark.sql.{SparkSession, Row}
+import org.apache.spark.sql.{Row, SparkSession}
+
 import java.io.{BufferedWriter, FileWriter}
+import scala.collection.immutable.ArraySeq
 
 object WriteToFIleScalaRDDWay extends App {
 
@@ -57,7 +59,7 @@ object WriteToFIleScalaRDDWay extends App {
       writer.flush() // Ensure data is written to the file immediately
 
       // 7. Remove the processed batch from the RDD
-      val batchRDD = spark.sparkContext.parallelize(batch)
+      val batchRDD = spark.sparkContext.parallelize(ArraySeq.unsafeWrapArray(batch))
       rdd = rdd.subtract(batchRDD)
     }
   } finally {

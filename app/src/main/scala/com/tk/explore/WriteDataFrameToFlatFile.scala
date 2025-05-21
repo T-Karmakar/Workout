@@ -9,7 +9,7 @@ import java.io.{BufferedWriter, FileWriter}
 
 object WriteDataFrameToFlatFile {
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder
+    val spark = SparkSession.builder()
       .appName("Write DataFrame to Flat File")
       .master("local[*]")  // Adjust as per your cluster setup
       .getOrCreate()

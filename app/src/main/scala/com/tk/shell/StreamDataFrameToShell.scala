@@ -9,7 +9,7 @@ import scala.sys.process._
 
 object StreamDataFrameToShell {
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder
+    val spark = SparkSession.builder()
       .appName("Stream DataFrame to Shell Script")
       .master("local[*]")  // Adjust according to your cluster
       .getOrCreate()

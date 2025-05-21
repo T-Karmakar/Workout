@@ -9,7 +9,7 @@ import sys.process._
 
 object WriteDataFrameWithSed {
   def main(args: Array[String]): Unit = {
-    val spark = SparkSession.builder
+    val spark = SparkSession.builder()
       .appName("Write DataFrame with Sed")
       .master("local[*]")  // Adjust this for your cluster setup
       .getOrCreate()
