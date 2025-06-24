@@ -199,3 +199,41 @@ while : ; do
 
   ((page++))
 done
+
+
+###################################################################
+
+get_latest_develop_branch_by_commit_pure() {
+  local project_id="$1"
+  local token="$2"
+  local api_url="https://gitlab.com/api/v4"
+  local auth_header="PRIVATE-TOKEN: $token"
+
+  echo "[INFO] Finding latest 'develop_' branch by last commit date (pure Bash)..."
+
+  # Step 1: Get ALL branch names
+  branches=$(curl -s --header "$auth_header" \
+    "$api_url/projects/$project_id/repository/branches" \
+    | grep -o '"name":"[^"]*' | cut -d'"' -f4 | grep '^develop_')
+
+  latest_branch=""
+  latest_commit_date="1970-01-01T00:00:00Z"
+
+  for branch in $branches; do
+    # Get the single branch info
+    branch_info=$(curl -s --header "$auth_header" \
+      "$api_url/projects/$project_id/repository/branches/$branch")
+
+    # Extract commit date (look for "committed_date":"...")
+    commit_date=$(echo "$branch_info" | grep -o '"committed_date":"[^"]*' | cut -d'"' -f4)
+
+    # Compare ISO 8601 timestamps lexically: safe!
+    if [[ "$commit_date" > "$latest_commit_date" ]]; then
+      latest_commit_date="$commit_date"
+      latest_branch="$branch"
+    fi
+  done
+
+  echo "$latest_branch"
+}
+
