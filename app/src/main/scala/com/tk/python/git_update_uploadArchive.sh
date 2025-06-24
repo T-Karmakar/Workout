@@ -92,3 +92,44 @@ for repo_url in "${repos[@]}"; do
   # Clone default branch
   echo "[INFO] Cloning $default_branch..."
   git clone --depth 1 --branch "$defaul
+
+############################################
+#!/usr/bin/env bash
+
+GITLAB_TOKEN="YOUR_PERSONAL_ACCESS_TOKEN"
+GITLAB_GROUP="your-group-path"  # e.g., company/team
+API_URL="https://gitlab.com/api/v4"
+
+auth_header="PRIVATE-TOKEN: $GITLAB_TOKEN"
+
+# 1️⃣ Get project list from group
+page=1
+while : ; do
+  projects=$(curl -s --header "$auth_header" "$API_URL/groups/$GITLAB_GROUP/projects?per_page=100&page=$page")
+  project_ids=$(echo "$projects" | grep -o '"id":[0-9]*' | cut -d':' -f2)
+  [ -z "$project_ids" ] && break
+
+  for project_id in $project_ids; do
+    echo ""
+    echo "🔍 Project ID: $project_id"
+
+    # 2️⃣ Get default branch
+    default_branch=$(curl -s --header "$auth_header" "$API_URL/projects/$project_id" \
+      | grep -o '"default_branch":"[^"]*' | cut -d'"' -f4)
+    echo "✅ Default branch: $default_branch"
+
+    # 3️⃣ Get branches sorted by update time and filter by name
+    latest_develop=$(curl -s --header "$auth_header" \
+      "$API_URL/projects/$project_id/repository/branches?order_by=updated_at&sort=desc" \
+      | grep -o '"name":"develop_[^"]*' | cut -d'"' -f4 | head -n1)
+
+    if [ -n "$latest_develop" ]; then
+      echo "✅ Latest 'develop_' branch: $latest_develop"
+    else
+      echo "❌ No 'develop_' branch found"
+    fi
+
+  done
+
+  ((page++))
+done
