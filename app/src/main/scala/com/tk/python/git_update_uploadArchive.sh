@@ -91,7 +91,73 @@ for repo_url in "${repos[@]}"; do
 
   # Clone default branch
   echo "[INFO] Cloning $default_branch..."
-  git clone --depth 1 --branch "$defaul
+  git clone --depth 1 --branch "$default_branch" "$repo_url" "$repo_name/$default_branch"
+
+  # Clone latest branch if different
+  if [[ "$latest_branch" != "$default_branch" ]]; then
+    echo "[INFO] Cloning $latest_branch..."
+    git clone --depth 1 --branch "$latest_branch" "$repo_url" "$repo_name/$latest_branch"
+  fi
+
+  #########################################################
+  ## ✅ Replace uploadArchives in both branches
+  #########################################################
+
+  for BRANCH in "$default_branch" "$latest_branch"; do
+    branch_dir="$repo_name/$BRANCH"
+    [ ! -d "$branch_dir" ] && continue
+
+    echo "[INFO] Processing branch: $BRANCH"
+    cd "$branch_dir"
+
+    if [ -f "build.gradle" ]; then
+
+      # Write replacement to temp file to safely pass to Perl
+      echo "$REPLACEMENT_BLOCK" > ../replacement_block.txt
+
+      # Perl replace: robust nested brace matcher
+      perl -0777 -i -pe '
+        my $replacement = do { local $/; open my $fh, "<", "../replacement_block.txt"; <$fh> };
+        while (/uploadArchives\s*\{/gc) {
+          my $start = $-[0];
+          my $pos = pos();
+          my $depth = 1;
+          while ($depth && $pos < length()) {
+            my $c = substr($_, $pos, 1);
+            $depth++ if $c eq "{";
+            $depth-- if $c eq "}";
+            $pos++;
+          }
+          substr($_, $start, $pos - $start) = $replacement;
+        }
+      ' build.gradle
+
+      # Commit + push
+      git config user.name "AutoBot"
+      git config user.email "ci-bot@example.com"
+
+      git add build.gradle
+
+      if git diff --cached --quiet; then
+        echo "[INFO] No changes for $BRANCH — skip commit."
+      else
+        git commit -m "Auto-update $TARGET_BLOCK_NAME block"
+        git push origin "$BRANCH"
+        echo "[INFO] ✅ Pushed update to $BRANCH."
+      fi
+
+    else
+      echo "[WARN] build.gradle not found in $BRANCH — skip."
+    fi
+
+    cd "$WORK_DIR"
+  done
+
+done
+
+echo ""
+echo "✅✅✅ [DONE] All repositories processed successfully!"
+
 
 ############################################
 #!/usr/bin/env bash
