@@ -237,3 +237,11 @@ get_latest_develop_branch_by_commit_pure() {
   echo "$latest_branch"
 }
 
+
+####################################################################################
+
+my $replacement = do {
+    local $/;
+    open my $fh, "<", "../replacement_block.txt" or die "Can't open file: $!";
+    <$fh>
+};
