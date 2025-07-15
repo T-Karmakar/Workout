@@ -224,29 +224,4 @@ Using IntelliJ IDEA, you can selectively merge files from a feature branch into 
 
 
 ######################################################################################################
-Subject: Appreciation for Your Outstanding Contribution to the Data Feed Pipeline
 
-Dear [Team Member's Name],
-
-I want to sincerely appreciate your excellent work on the Spark-Scala data feed generation module. Your deep understanding of distributed data processing, especially your efficient handling of large datasets and batch-wise writing to flat files, made a significant impact on the system’s performance and reliability.
-
-Your effort in optimizing MySQL queries and ensuring UTF-8 integrity during flat file writes shows not just technical skill, but also attention to quality and robustness.
-
-Thank you for your consistent commitment, performance, and collaborative spirit throughout the project. Looking forward to more such successes together!
-
-— [Your Name]
-
------------------------------
-Huge shout-out to [Name] for rocking the Spark + Scala data feed generation pipeline! 💥
-The way you handled MySQL read optimizations, smart batching, and massive flat file outputs—without choking memory—is impressive.
-Your work made our ETL process way more efficient and scalable. Appreciate the hustle and deep tech insight!
-
------------------------------
-
-Highlights – Data Feed Module (Owned by [Name])
-✅ Efficient Spark DataFrame batching to flat file (15M+ rows)
-✅ Query tuning on MySQL to reduce read time by 40%
-✅ UTF-8 file handling without junk characters (em dash, £, etc.)
-✅ RAM + Disk optimized batch strategy
-
-Amazing execution and deep ownership 👏👏👏
