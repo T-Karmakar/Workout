@@ -225,3 +225,156 @@ Using IntelliJ IDEA, you can selectively merge files from a feature branch into 
 
 ######################################################################################################
 
+Here is a curated list of **intermediate and advanced-level Apache Spark interview questions** with a focus on **Scala-based, scenario-driven problem-solving**, ideal for experienced professionals:
+
+---
+
+### 🔷 **Intermediate Level – Scenario-Based Questions**
+
+#### **1. Scenario: Broadcast Join vs Shuffle Join**
+
+**Q:** You are joining a small lookup table with a large dataset in Spark. The job is slow. How would you optimize it?
+**Expected Answer:**
+
+* Use a **broadcast join** to avoid shuffling the large dataset.
+* In Scala: `broadcast(smallDF).join(largeDF, "id")`
+* Confirm small table size is under broadcast threshold (`spark.sql.autoBroadcastJoinThreshold`)
+
+---
+
+#### **2. Scenario: Skewed Data Causing Slow Stage**
+
+**Q:** One of the stages is running slower than others. Some tasks are taking disproportionately longer. What could be the reason and how do you fix it?
+**Expected Answer:**
+
+* Likely **data skew** on certain keys.
+* Fixes:
+
+  * Use **salting** technique to distribute keys evenly.
+  * Add `repartition()` on skewed column.
+  * Use custom partitioner if RDD-based.
+
+---
+
+#### **3. Scenario: Caching Strategy**
+
+**Q:** You’re repeatedly using the same DataFrame in a complex pipeline. Performance degrades over time. How do you manage this?
+**Expected Answer:**
+
+* Cache the DataFrame using `.cache()` or `.persist()` depending on memory availability.
+* Monitor using Spark UI – if the dataset is recomputed, caching can help.
+* Be careful to unpersist when done: `df.unpersist()`
+
+---
+
+#### **4. Scenario: Custom Partitioning**
+
+**Q:** You want to ensure a specific column's values are processed together on the same partition. How can you do this in Scala?
+**Expected Answer:**
+
+* Use `partitionBy` when writing data:
+
+  ```scala
+  df.write.partitionBy("customer_id").parquet("path")
+  ```
+* For RDDs, use a custom `Partitioner`.
+
+---
+
+#### **5. Scenario: File Format Choice**
+
+**Q:** You are processing 1TB of data daily. Jobs are slow. What file format and compression would you use, and why?
+**Expected Answer:**
+
+* Use **Parquet** or **ORC** for columnar storage.
+* Apply **Snappy** compression for fast read/write.
+* Reason: Efficient for analytical queries with column pruning.
+
+---
+
+### 🔶 **Advanced Level – Scenario-Based Questions**
+
+#### **1. Scenario: Catalyst Optimization Impact**
+
+**Q:** How does Catalyst optimizer affect a DataFrame query that has multiple filters and joins?
+**Expected Answer:**
+
+* Catalyst rearranges logical plan: pushes filters closer to source (predicate pushdown), optimizes joins, etc.
+* Understand `.explain(true)` to trace physical plan.
+* Can suggest filter reordering manually for complex logic.
+
+---
+
+#### **2. Scenario: Handling Streaming Late Data**
+
+**Q:** In Spark Structured Streaming, how do you handle late-arriving data?
+**Expected Answer:**
+
+* Use **watermarking** to handle late data:
+
+  ```scala
+  withWatermark("eventTime", "10 minutes")
+  ```
+* Combine with windowing functions to allow aggregation over late arrivals.
+
+---
+
+#### **3. Scenario: GC Pressure in Executors**
+
+**Q:** Your executors are running out of memory and GC is taking too long. What could be wrong and how do you address it?
+**Expected Answer:**
+
+* Reasons:
+
+  * Too many cached datasets
+  * High shuffle spill
+* Fixes:
+
+  * Increase executor memory
+  * Tune `spark.memory.fraction`
+  * Avoid unnecessary `.collect()` or large `.groupBy()` operations
+
+---
+
+#### **4. Scenario: RDD vs DataFrame in Production**
+
+**Q:** A colleague suggests using RDDs instead of DataFrames for more control. What are the trade-offs?
+**Expected Answer:**
+
+* RDDs give fine-grained control and type safety but lack **Catalyst optimization** and **Tungsten execution**
+* DataFrames are optimized, more performant for most tasks
+* Prefer DataFrames unless you need custom partitioning or lineage-level control
+
+---
+
+#### **5. Scenario: Writing Efficient UDFs**
+
+**Q:** You wrote a UDF that causes performance issues. What could go wrong, and how do you fix it?
+**Expected Answer:**
+
+* UDFs are black boxes for Catalyst optimizer. Spark cannot optimize or push predicates.
+* Fix:
+
+  * Use **built-in Spark SQL functions** where possible
+  * Switch to **Spark 3.0+ UDFs** like Pandas UDFs or TypedUDFs in PySpark if needed
+  * In Scala, avoid UDF unless absolutely necessary
+
+---
+
+#### **6. Scenario: Dynamic Resource Allocation Not Working**
+
+**Q:** Spark dynamic resource allocation is enabled but executors are not being added or removed. Why?
+**Expected Answer:**
+
+* Check:
+
+  * Spark is running in a **YARN or Kubernetes cluster** with autoscaling
+  * `spark.shuffle.service.enabled=true`
+  * Proper configuration of `spark.dynamicAllocation.*` settings
+  * Jobs are not long-running or static in stage duration
+
+---
+
+Would you like sample answers or code examples for these scenarios in Scala as well?
+
+
