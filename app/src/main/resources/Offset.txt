@@ -128,3 +128,70 @@ This code snippet processes 1 million rows at a time, appending each batch to th
 - **Monitor resources**: Ensure memory and disk space usage is within limits by checking Spark UI and disk usage.
 
 By following this approach, you can write 15 million rows efficiently to disk on a server with 24 GB of RAM and 30 GB of hard drive space without running into memory or disk overload issues.
+
+
+
+
+=============================================================================================================
+
+Technical Expertise: Highly skilled in Spark and Scala, with strong problem-solving and debugging abilities. Consistently delivers clean, efficient, and scalable code.
+
+Collaboration: Works effectively with peers, always open to sharing knowledge, pair programming, and supporting others when needed.
+
+Communication: Clear and concise communicator who can explain complex technical concepts in an understandable way to both technical and non-technical stakeholders.
+
+Reliability & Ownership: Takes complete ownership of assigned tasks and follows through to successful completion, ensuring quality and timeliness.
+
+Adaptability: Quick learner, open to feedback, and able to adapt well to changing project requirements or priorities.
+
+
+Highly skilled in Spark and Scala, with strong problem-solving and debugging abilities. Consistently delivers clean, efficient, and scalable code. Works effectively with peers, always open to sharing knowledge, pair programming, and supporting others when needed. Takes complete ownership of assigned tasks and follows through to successful completion, ensuring quality and timeliness. Clear and concise communicator who can explain complex technical concepts in an understandable way to both technical and non-technical stakeholders. Quick learner, open to feedback, and able to adapt well to changing project requirements or priorities.
+
+
+Can deepen understanding of broader business use-cases to align technical solutions more closely with client needs. Can further develop in mentoring juniors and taking initiative in technical decision-making at the architecture level. Opportunity to strengthen skills in complementary big data tools (ML frameworks) for end-to-end ownership.
+
+
+Stop spending excessive time perfecting minor details and instead focus on balancing speed with quality to meet timelines effectively.
+
+
+Could enhance expertise by exploring tools and technologies beyond their current strengths. Opportunity to make updates more concise and business-focused for better alignment.
+
+
+Strong expertise in Spark and Scala, consistently writing scalable, and efficient code. Quick learner with excellent problem-solving and debugging skills. Reliable collaborator who communicates clearly and works well within the team. Demonstrates ownership and accountability in delivering high-quality work on time.
+
+
+Can further strengthen cross-technology knowledge (e.g., Kafka, Avro, ML frameworks) for broader impact. Could improve time management by balancing attention to detail with faster delivery. Opportunity to grow in leadership by mentoring juniors and contributing to architectural discussions.
+
+~~~~~~~~~~~~~~~
+
+Strong expertise in database optimization and performance tuning. Reliable in ensuring data security, integrity, and availability. Quick to troubleshoot issues and minimize downtime. Supportive collaborator who communicates clearly with developers and other stakeholders.
+
+Could enhance knowledge of cloud-based and distributed database solutions for future scalability. Opportunity to strengthen automation skills to reduce manual administrative overhead.
+
+
+~~~~~~~~
+
+Quickly learned Spark–Scala and started contributing efficiently and effectively. Strong adaptability and ability to manage multiple responsibilities simultaneously. Reliable collaborator with clear communication and teamwork. Shows ownership and accountability in delivering quality solutions.
+
+Can further deepen Spark–Scala expertise to move beyond efficiency into advanced optimization. Opportunity to explore broader big data ecosystem tools (ML frameworks) for end-to-end impact. Could contribute more proactively in architectural/design-level discussions.
+
+
+~~~~~~~~~~~~
+
+Has good foundational knowledge of Spark and Scala. Demonstrates potential to pick up new skills when focused. Maintains a positive and approachable attitude within the team.
+
+Needs to increase engagement and take more ownership of team tasks. Should contribute more actively to achieving team goals instead of staying on the periphery. Can improve consistency in delivering on commitments and timelines.
+
+
+~~~~~~~~~~~~~~~~~
+
+Strong technical expertise in the Kofax BPM platform, including workflow design, process automation, and integration. Quick problem solver who ensures smooth process execution and minimal downtime. Reliable and detail-oriented, ensuring quality in delivered solutions. Supportive collaborator who works well with both business and technical stakeholders.
+
+Could expand expertise into related automation and AI/ML tools to strengthen end-to-end automation capabilities. Opportunity to enhance documentation and knowledge-sharing for smoother team handovers. Can improve stakeholder communication by translating complex BPM concepts into more business-friendly terms.
+
+~~~~~~~~~~~~
+
+Deep domain expertise, bringing valuable business context and guiding technical decisions to align with strategic goals. Strong leadership and people management skills, fostering collaboration and motivating the team. Effective communicator who bridges the gap between stakeholders and technical teams. Reliable decision-maker with a focus on quality, timelines, and delivering business value.
+
+
+Could delegate more effectively to empower team members and avoid over-involvement in operational details. Opportunity to strengthen hands-on exposure to emerging technologies relevant to the domain. Can enhance focus on long-term innovation alongside day-to-day project execution.
