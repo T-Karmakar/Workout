@@ -1,3 +1,98 @@
+I started my career deep in the world of **Core Java**, learning how to build things from the ground up—clean code, solid logic, and a strong foundation in software engineering. From there, I moved into a more specialized space as an **IBM Tivoli Monitoring (ITM) Agent developer**, where I wasn’t just writing code anymore, I was building the eyes and ears of enterprise systems—agents that kept critical infrastructure visible, healthy, and under control.
+
+Over time, my role evolved from pure development into a broader **infrastructure monitoring** focus. I began supporting and integrating multiple tools across the stack:
+
+* **IBM Tivoli / ITM**
+* **SCOM** for Windows environments
+* **Netcool/OMNIbus** for event management
+* **ServiceNow (SNOW)** for ITSM workflows
+* **ILMT** for license metering and compliance
+
+This phase of my journey taught me how large, complex ecosystems behave in the real world—how incidents flow, how events are correlated, how business services depend on underlying infrastructure, and how critical observability is for stability and performance.
+
+Gradually, this monitoring and tooling experience became a natural bridge into the **data world**. I wasn’t just looking at events and metrics anymore—I was increasingly interested in how all this data could be engineered, transformed, and used to make better decisions. That curiosity led me to transition into the **data domain**, where I grew into a **Data Engineering Lead**.
+
+In this role, I’ve worked across modern data platforms and pipelines, including:
+
+* **Palantir Foundry** for end-to-end data workflows and governance
+* **Apache Airflow** for orchestrating complex data pipelines
+* **Apache Spark with Scala** for large-scale data processing and analytics
+
+Today, my journey connects all these threads:
+
+* A **strong engineering foundation** from my Java days
+* **Deep operational and monitoring experience** from working with enterprise tools like ITM, SCOM, Netcool, SNOW, and ILMT
+* And now, **leading data engineering initiatives**, where I design and oversee reliable, scalable data solutions that help the business see, understand, and use its data more effectively.
+
+In short, I’ve grown from **building applications**, to **observing and safeguarding systems**, to **shaping data platforms**—always moving closer to where technology, reliability, and insight come together.
+
+
+##################################
+
+
+That's a great topic for a mentoring session! A structured approach can help ensure we cover the most important areas of your career growth.
+
+Since I don't know your specific background, goals, or current role, I'll provide a framework covering the key discussion points for a valuable career and growth mentoring session.
+
+## 🧭 Career Discussion & Growth Framework
+
+A productive mentoring session on career growth typically moves through three phases: **Review, Goals, and Action.**
+
+---
+
+## 1. Review & Self-Assessment (The "Where Am I?" Phase)
+
+Before setting future goals, we need a clear understanding of your current situation, strengths, and challenges.
+
+| Area | Discussion Points |
+| :--- | :--- |
+| **Current Role & Satisfaction** | What are your current primary responsibilities? What aspects of your job do you genuinely enjoy, and what do you find frustrating or draining? |
+| **Strengths & Core Skills** | What are the top 3-5 skills (technical or soft) that you excel at and that differentiate you? (e.g., *problem-solving, coding efficiency, stakeholder management*). |
+| **Growth Gaps & Challenges** | Where do you feel you lack experience or skills? What obstacles are currently preventing you from taking the next step? |
+| **Performance Feedback** | What recent formal or informal feedback have you received? What was the most surprising or valuable piece of advice? |
+
+---
+
+## 2. Setting Future Goals (The "Where Am I Going?" Phase)
+
+This phase focuses on defining the direction and specific milestones for your growth.
+
+### A. Short-Term Goals (Next 6-12 Months)
+* **Skill Acquisition:** What one or two **specific, measurable skills** (e.g., learn Python advanced functional programming, achieve AWS certification, lead a cross-functional project) will make the biggest impact on your current performance or next promotion?
+* **Current Role Impact:** What concrete result or project can you deliver that showcases your ability to operate at the **next level**?
+
+### B. Long-Term Vision (3-5 Years)
+* **Role/Title:** What specific role are you aiming for (e.g., Senior Engineer, Team Lead, Product Manager, Architect)?
+* **Industry/Domain:** Do you want to remain in your current industry or pivot? What type of problems do you want to be solving?
+* **"What does success look like?"** If you look back in five years, what professional achievement would you be most proud of?
+
+---
+
+## 3. Action Planning & Strategy (The "How Do I Get There?" Phase)
+
+This is where the discussion becomes actionable, focusing on concrete steps and resources.
+
+### A. Development Plan
+* **Learning Resources:** What courses, books, mentors, or internal projects are needed to close the skill gaps identified in Phase 1?
+* **Exposure & Visibility:** How can you strategically increase your visibility within the organization? (e.g., presenting your work, contributing to knowledge sharing, volunteering for high-visibility tasks).
+* **Networking:** Who are the key people you need to build relationships with to understand different career paths or get support for your goals?
+
+### B. Leveraging the Mentorship
+* **Accountability:** How often should we check in? What specific item or goal should I hold you accountable for by our next session?
+* **Specific Advice:** Based on your goals, what are the biggest **mistakes** I can help you avoid?
+
+---
+
+### **💡 Next Step:**
+
+To start our mentoring session, please tell me:
+
+1.  **What is your current role/field?**
+2.  **What are your top 2-3 current professional goals?** (e.g., get a promotion, transition to management, or master a new technology).
+
+########################################################################################
+
+
 
 When you're using the `activemq-all` JAR (especially older versions), it **bundles multiple transitive logging frameworks** (like commons-logging, log4j 1.x, etc.), which can interfere with your application's own logging (e.g., `logback.xml` with SLF4J). This causes duplicated logs, ignored `logback.xml`, or even weird classpath conflicts.
 
